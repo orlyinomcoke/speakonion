@@ -291,7 +291,8 @@ body.theme-dark .take{background:var(--soft)}
 .taketext{margin:0 0 0 38px;font-size:15px;line-height:1.6}
 .takefoot{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-left:38px}
 .fair{min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:13px;font-weight:600}
-.fair.on{background:#EDE9FE;border-color:#EDE9FE;color:#5B21B6}
+.fair{display:inline-flex;align-items:center;gap:6px}
+.fair.on{background:#FFE4E6;border-color:#FFE4E6;color:#E11D48}
 .link.debate{font-size:13px;color:var(--muted)}
 @media (min-width:1000px){ .topicLayout{grid-template-columns:minmax(0,5fr) minmax(0,6fr)} .topicLayout > .tleft{position:sticky;top:90px} .topicLayout > .card:first-child{position:static} }
 @media (max-width:760px){ .tcard,.takes{padding:20px} .ttitle{font-size:26px} .taketext,.takefoot{margin-left:0} .crumbs .cur{max-width:100%;white-space:normal} .bigopt .yp{font-size:0;padding:4px 6px;gap:0} .bigopt .row2{white-space:nowrap} .topicLayout,.tleft{min-width:0;width:100%} }
@@ -763,8 +764,8 @@ body.theme-dark .take{background:var(--soft)}
             S.isAdmin ? h('button', { class: 'link', style: 'color:var(--err)', onclick: () => hideComment(c.id) }, svg(13, '<path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10 10 0 0 1 12 4c5 0 9 4.5 10 8a12 12 0 0 1-2.9 4.3M6.2 6.2A12 12 0 0 0 2 12c1 3.5 5 8 10 8 1.6 0 3.1-.4 4.4-1.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'), ' Hide') : null)),
         h('p', { class: 'taketext', text: c.comment }),
         h('div', { class: 'takefoot' },
-          isMine ? h('span', { class: 'fair on', style: 'cursor:default' }, '▲ Fair point · ' + (c.fair || 0))
-            : h('button', { class: 'fair' + (faired ? ' on' : ''), 'aria-pressed': String(!!faired), onclick: () => toggleFair(c) }, (faired ? '▲' : '△') + ' Fair point · ' + (c.fair || 0)))));
+          isMine ? h('span', { class: 'fair', style: 'cursor:default', title: 'Likes on your comment' }, svg(14, '<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.5 8.2 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.5 3.7 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'), (c.fair || 0) + ((c.fair || 0) === 1 ? ' like' : ' likes'))
+            : h('button', { class: 'fair' + (faired ? ' on' : ''), 'aria-pressed': String(!!faired), 'aria-label': (faired ? 'Unlike' : 'Like') + ', ' + (c.fair || 0) + ' likes', onclick: () => toggleFair(c) }, svg(14, '<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.5 8.2 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.5 3.7 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z" fill="' + (faired ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'), 'Like' + ((c.fair || 0) ? ' · ' + c.fair : '')))));
     }
     return h('main', {}, crumbs, h('div', { class: 'topicLayout' }, h('div', { class: 'tleft' }, left, how), right), siteFooter());
   }
