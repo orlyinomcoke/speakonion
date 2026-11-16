@@ -50,7 +50,11 @@ main{display:flex;flex-direction:column;gap:12px;padding:4px 14px 48px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 2px}
 .chip{min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:13px}
 .chip[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--inkText)}
-.feed{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.feed{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:stretch}
+.feed > .card{display:flex;flex-direction:column}
+.feed .topic{flex:1}
+.feed .meta{margin-top:auto}
+.pill.ghost{background:var(--soft);border-color:var(--soft);color:var(--muted)}
 .card{background:var(--card);border-radius:24px;box-shadow:var(--shadow);border:1px solid transparent}
 body.theme-dark .card{border-color:var(--line)}
 .topic{display:flex;flex-direction:column;gap:14px;width:100%;padding:18px 18px 4px;border:0;background:none;text-align:left;border-radius:24px}
@@ -392,8 +396,9 @@ footer{padding:16px;text-align:center}
           h('span', { class: 'title', text: t.title }),
           splitBar(t, st),
           h('span', { class: 'meta' }, h('span', { text: fmt(st.total) + (st.total === 1 ? ' vote' : ' votes') }), h('span', { text: fmt(st.list.length) + (st.list.length === 1 ? ' comment' : ' comments') }))),
-        mine ? h('div', { class: 'cardfoot' },
-          h('button', { class: 'pill ink wide', onclick: () => { S.topicId = t.id; startSeeking(); } }, chatIcon(), 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side')) : null));
+        h('div', { class: 'cardfoot' }, mine
+          ? h('button', { class: 'pill ink wide', onclick: () => { S.topicId = t.id; startSeeking(); } }, chatIcon(), 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side')
+          : h('button', { class: 'pill ghost wide', onclick: () => go('topic', { topicId: t.id, pick: null, draft: '', tab: 'a' }) }, chatIcon(), 'Vote to unlock chat'))));
     }
     main.append(feed);
     if (S.isAdmin) main.append(h('footer', {}, h('label', { class: 'small muted' }, h('input', { type: 'checkbox', checked: S.simPurge || null, onchange: (e) => { S.simPurge = e.target.checked; render(); } }), ' Simulate Purge Hour (admin test switch, this browser only)')));
