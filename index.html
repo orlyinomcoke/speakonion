@@ -764,8 +764,7 @@ body.theme-dark .take{background:var(--soft)}
         h('p', { class: 'taketext', text: c.comment }),
         h('div', { class: 'takefoot' },
           isMine ? h('span', { class: 'fair on', style: 'cursor:default' }, '▲ Fair point · ' + (c.fair || 0))
-            : h('button', { class: 'fair' + (faired ? ' on' : ''), 'aria-pressed': String(!!faired), onclick: () => toggleFair(c) }, (faired ? '▲' : '△') + ' Fair point · ' + (c.fair || 0)),
-          mine && c.side !== mine.side ? h('button', { class: 'link debate', onclick: startSeeking, text: 'Debate ' + (c.side === 'a' ? t.labelA : t.labelB) + ' side 1-on-1 →' }) : null)));
+            : h('button', { class: 'fair' + (faired ? ' on' : ''), 'aria-pressed': String(!!faired), onclick: () => toggleFair(c) }, (faired ? '▲' : '△') + ' Fair point · ' + (c.fair || 0)))));
     }
     return h('main', {}, crumbs, h('div', { class: 'topicLayout' }, h('div', { class: 'tleft' }, left, how), right), siteFooter());
   }
