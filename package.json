@@ -1,0 +1,13 @@
+{
+  "name": "speakonion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Speak Onion - pick a side, hear the other. Static web app on Supabase.",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
