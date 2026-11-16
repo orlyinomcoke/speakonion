@@ -162,10 +162,15 @@ header{background:var(--card);border-bottom:1px solid var(--line);padding:12px 2
 .opt small{font-weight:500;font-size:11px;opacity:.85}
 .opt.a{background:#7C3AED;color:#fff}
 .opt.b{background:#D9F99D;color:#1A2E05}
-.opt.sel{background:#D9F99D;color:#1A2E05;box-shadow:0 0 0 2px var(--card),0 0 0 4px #84CC16}
-.opt.sel .pct{background:rgba(26,46,5,.12)}
-.opt.dim{background:var(--soft);color:var(--muted)}
-.opt.dim .pct{background:rgba(0,0,0,.07)}
+.opt.sel{box-shadow:0 0 0 2px var(--card),0 0 0 4.5px var(--text)}
+.opt.dim{opacity:.45}
+.opt .right{display:flex;align-items:center;gap:6px}
+.opt .yp{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.25)}
+.opt.b .yp{background:rgba(26,46,5,.12)}
+div.opt{cursor:default}
+.badge.picked.pa{background:#EDE9FE;color:#5B21B6}
+.badge.picked.pb{background:#ECFCCB;color:#3F6212}
+.votebox{display:flex;flex-direction:column;gap:10px}
 @keyframes resort{from{opacity:.35;transform:translateY(6px)}to{opacity:1;transform:none}}
 .feed.resorted > .card{animation:resort .28s ease}
 .opt .pct{font:700 10px ui-monospace,monospace;padding:3px 6px;border-radius:6px;background:rgba(0,0,0,.18)}
@@ -491,25 +496,35 @@ h1,.ctitle,.topic .title{font-weight:700}
     check: '<path d="M5 12l5 5 9-10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
     plus: '<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'
   };
+  // One rule everywhere: left option = violet, right option = green. Your pick = ring + check + "Your pick".
+  function sideOpt(t, st, side, mine, opts) {
+    const label = side === 'a' ? t.labelA : t.labelB, pct = side === 'a' ? st.pa : st.pb;
+    const sel = mine ? mine.side === side : opts.selected === side;
+    const cls = 'opt ' + side + (sel ? ' sel' : (mine ? ' dim' : ''));
+    const right = mine
+      ? h('span', { class: 'right' }, sel && opts.yourPick ? h('span', { class: 'yp', text: 'Your pick' }) : null, h('span', { class: 'pct', text: pct + '%' }), sel ? svg(14, ICON.check) : null)
+      : opts.pickHint ? h('small', { text: 'Pick →' }) : (sel ? svg(16, ICON.check) : null);
+    const kids = [h('span', { text: label }), right];
+    if (!opts.onclick) return h('div', { class: cls, role: 'img', 'aria-label': label + ' ' + pct + ' percent' + (sel ? ', your pick' : '') }, ...kids);
+    return h('button', Object.assign({ class: cls, onclick: opts.onclick }, opts.attrs || {}), ...kids);
+  }
+  function thinBar(t, st) {
+    return h('div', { class: 'thin', role: 'img', 'aria-label': t.labelA + ' ' + st.pa + ' percent, ' + t.labelB + ' ' + st.pb + ' percent' },
+      h('span', { style: 'flex:' + Math.max(st.pa, 1) + ';background:#7C3AED' }), h('span', { style: 'flex:' + Math.max(st.pb, 1) + ';background:#A3E635' }));
+  }
+
   function topicCard(t, st) {
     const mine = myVote(t.id);
     const open = (pick) => go('topic', { topicId: t.id, pick: pick || null, draft: '', tab: mine ? mine.side : (pick || 'a') });
-    const opt = (side) => {
-      const label = side === 'a' ? t.labelA : t.labelB, pct = side === 'a' ? st.pa : st.pb, sel = mine && mine.side === side;
-      return h('button', { class: 'opt ' + side + (sel ? ' sel' : (mine ? ' dim' : '')), onclick: () => open(mine ? null : side), 'aria-label': mine ? label + ' ' + pct + ' percent' + (sel ? ', your pick' : '') : 'Pick ' + label },
-        side === 'a' ? h('span', { text: label }) : null,
-        mine ? h('span', { class: 'pct', text: pct + '%' }) : (side === 'b' ? h('span', { text: label }) : null),
-        mine ? (side === 'b' ? h('span', { style: 'display:flex;align-items:center;gap:6px' }, h('span', { text: label }), sel ? svg(14, ICON.check) : null) : (sel ? svg(14, ICON.check) : null))
-             : h('small', { text: 'Pick →' }));
-    };
+    const opt = (side) => sideOpt(t, st, side, mine, { pickHint: !mine, onclick: () => open(mine ? null : side),
+      attrs: { 'aria-label': mine ? (side === 'a' ? t.labelA : t.labelB) + ' ' + (side === 'a' ? st.pa : st.pb) + ' percent' + (mine.side === side ? ', your pick' : '') : 'Pick ' + (side === 'a' ? t.labelA : t.labelB) } });
     const total = st.total;
     return h('article', { class: 'card' },
       h('div', { class: 'ctop' }, h('span', {}, h('b', { text: t.community || 't/general' }), ' • ' + ago(t.createdAt)),
-        mine ? h('span', { class: 'badge picked' }, svg(11, ICON.check), 'You picked ' + (mine.side === 'a' ? t.labelA : t.labelB)) : h('span', { class: 'badge open', text: 'Open debate' })),
+        mine ? h('span', { class: 'badge picked p' + mine.side }, svg(11, ICON.check), 'You picked ' + (mine.side === 'a' ? t.labelA : t.labelB)) : h('span', { class: 'badge open', text: 'Open debate' })),
       h('button', { class: 'ctitle', onclick: () => open(), text: t.title }),
       mine || total
-        ? h('div', { class: 'thin', role: 'img', 'aria-label': t.labelA + ' ' + st.pa + ' percent, ' + t.labelB + ' ' + st.pb + ' percent' },
-            h('span', { style: 'flex:' + Math.max(st.pa, 1) + ';background:' + (mine ? (mine.side === 'a' ? '#A3E635' : 'var(--line)') : '#7C3AED') }), h('span', { style: 'flex:' + Math.max(st.pb, 1) + ';background:' + (mine ? (mine.side === 'b' ? '#A3E635' : 'var(--line)') : '#A3E635') }))
+        ? thinBar(t, st)
         : h('div', { class: 'hint' }, h('span', { text: 'Be the first to cast a vote' }), h('span', { text: '0% — 0%' })),
       h('div', { class: 'opts' }, opt('a'), opt('b')),
       h('div', { class: 'cmeta' }, h('span', {}, svg(14, ICON.bars), fmt(total) + (total === 1 ? ' vote' : ' votes')),
@@ -588,9 +603,11 @@ h1,.ctitle,.topic .title{font-weight:700}
     if (!S.user) {
       box.append(h('div', { class: 'notice' }, 'Sign in with your email to vote and chat. ', h('button', { class: 'pill ink', style: 'margin-top:8px', onclick: () => go('signin'), text: 'Sign in' })));
     } else if (!mine) {
-      const rg = h('div', { role: 'radiogroup', 'aria-label': 'Your vote', style: 'display:flex;gap:8px' },
-        h('button', { class: 'pill' + (S.pick === 'a' ? ' sideA' : ''), role: 'radio', 'aria-checked': String(S.pick === 'a'), onclick: () => { S.pick = 'a'; S.error = ''; render(); } }, t.labelA),
-        h('button', { class: 'pill' + (S.pick === 'b' ? ' sideB' : ''), role: 'radio', 'aria-checked': String(S.pick === 'b'), onclick: () => { S.pick = 'b'; S.error = ''; render(); } }, t.labelB));
+      const pickBtn = (side) => sideOpt(t, st, side, null, { selected: S.pick,
+        onclick: () => { S.pick = side; S.error = ''; render(); },
+        attrs: { role: 'radio', 'aria-checked': String(S.pick === side) } });
+      const rg = h('div', { class: 'votebox' }, h('span', { class: 'small muted', style: 'font-weight:600', text: 'Pick your side' }),
+        h('div', { class: 'opts', role: 'radiogroup', 'aria-label': 'Your vote' }, pickBtn('a'), pickBtn('b')));
       const ta = h('textarea', { id: 'why', rows: '3', maxlength: '500', placeholder: 'Add a comment (required)' });
       ta.value = S.draft;
       const cnt = h('span', { class: 'small muted', text: S.draft.length + '/500' });
@@ -599,8 +616,9 @@ h1,.ctitle,.topic .title{font-weight:700}
         h('div', { class: 'row' }, h('span', { class: 'err', role: 'alert', text: S.error }), h('span', { style: 'display:flex;gap:8px;align-items:center' }, cnt,
           h('button', { class: 'pill ink', disabled: S.busy || null, onclick: submitVote, text: S.busy ? 'Posting…' : 'Post' }))));
     }
-    box.append(splitBar(t, st));
-    if (mine) box.append(h('button', { class: 'pill ink wide', onclick: startSeeking }, chatIcon(), 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side'));
+    box.append(h('div', { class: 'votebox' }, h('span', { class: 'small muted', style: 'font-weight:600', text: st.total ? 'Results · ' + fmt(st.total) + (st.total === 1 ? ' vote' : ' votes') : 'No votes yet' }),
+      thinBar(t, st), mine ? h('div', { class: 'opts' }, sideOpt(t, st, 'a', mine, { yourPick: true }), sideOpt(t, st, 'b', mine, { yourPick: true })) : null));
+    if (mine) box.append(h('button', { class: 'enter', onclick: startSeeking }, h('span', { class: 'l', text: 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side' }), h('span', { class: 'r', text: 'Enter room →' })));
 
     const ca = st.list.filter((c) => c.side === 'a'), cb = st.list.filter((c) => c.side === 'b');
     const shown = (S.tab === 'a' ? ca : cb).sort((x, y) => y.at - x.at);
