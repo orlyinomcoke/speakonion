@@ -317,8 +317,9 @@ footer{padding:16px;text-align:center}
       S.mine = {}; (mq.data || []).forEach((v) => { S.mine[v.topic_id] = v; });
       const rq = await sb.from('reports').select('vote_id').eq('reporter', S.user.id);
       S.reported = {}; (rq.data || []).forEach((r) => { S.reported[r.vote_id] = true; });
-      const pq = await sb.from('profiles').select('is_admin').eq('id', S.user.id).maybeSingle();
+      const pq = await sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle();
       S.isAdmin = !!(pq.data && pq.data.is_admin);
+      S.nickname = (pq.data && pq.data.nickname) || '';
     } else { S.mine = {}; S.reported = {}; S.isAdmin = false; }
     const first = !S.loaded;
     S.loaded = true;
@@ -369,6 +370,7 @@ footer{padding:16px;text-align:center}
   function renderHome() {
     const main = h('main');
     main.append(h('h2', { class: 'hero' }, 'Pick a side.', h('br'), 'Hear the other.'));
+    if (S.user && S.nickname) main.append(h('div', { class: 'small muted', style: 'padding:0 6px' }, 'You appear to others as ', h('b', { style: 'color:var(--text)', text: S.nickname })));
     if (!sb) { main.append(h('div', { class: 'card pad' }, h('b', { text: 'Not connected yet' }), h('span', { class: 'muted', text: 'Add your Supabase URL and anon key to config.js.' }))); return main; }
     if (S.error) main.append(h('div', { class: 'card pad', style: 'color:var(--err)', text: S.error }));
     const tabs = h('div', { class: 'chips', role: 'tablist', 'aria-label': 'Sort topics' });
@@ -434,7 +436,7 @@ footer{padding:16px;text-align:center}
     for (const c of shown) {
       const isMine = mine && mine.id === c.id;
       sec.append(h('div', { class: 'comment' },
-        h('div', { class: 'small muted' }, h('b', { style: 'color:var(--text)', text: isMine ? 'you' : (c.masked || 'anonymous') }), ' ', h('span', { class: 'tag ' + c.side, style: 'padding:2px 8px', text: c.side === 'a' ? t.labelA : t.labelB }), ' · ' + ago(c.at)),
+        h('div', { class: 'small muted' }, h('b', { style: 'color:var(--text)', text: isMine ? (S.nickname ? S.nickname + ' (you)' : 'you') : (c.masked || 'Anonymous') }), ' ', h('span', { class: 'tag ' + c.side, style: 'padding:2px 8px', text: c.side === 'a' ? t.labelA : t.labelB }), ' · ' + ago(c.at)),
         h('div', { text: c.comment }),
         h('div', { class: 'acts' },
           !isMine && S.user ? h('button', { class: 'link', disabled: S.reported[c.id] || null, onclick: () => report(c.id), text: S.reported[c.id] ? 'Reported' : 'Report' }) : null,
@@ -537,7 +539,7 @@ footer{padding:16px;text-align:center}
     ch.on('presence', { event: 'join' }, ({ key }) => {
       if (S.chat !== c || key === S.user.id || c.partnerHere) return;
       c.partnerHere = true;
-      c.msgs.push({ sys: true, text: 'Connected. Share one reason for your pick, then ask what made them pick the other side.' });
+      c.msgs.push({ sys: true, text: 'Connected with ' + c.partnerName + '. Share one reason for your pick, then ask what made them pick the other side.' });
       renderMsgs();
     });
     ch.on('presence', { event: 'leave' }, ({ key }) => { if (key !== S.user.id && c.partnerHere) end('The other person left the chat.'); });
@@ -658,7 +660,7 @@ footer{padding:16px;text-align:center}
         box.append(h('div', { style: 'padding:14px 18px' }, h('b', { text: u.length + ' users' })));
         for (const x of u) box.append(h('div', { style: rowStyle },
           h('div', { style: 'flex:1 1 240px;min-width:0' },
-            h('div', { style: 'font-weight:600;word-break:break-all', text: x.email }),
+            h('div', { style: 'font-weight:600;word-break:break-all', text: (x.nickname ? x.nickname + ' · ' : '') + x.email }),
             h('div', { class: 'small muted', text: 'Joined ' + new Date(x.created_at).toLocaleDateString() + ' · last sign-in ' + (x.last_sign_in_at ? ago(Date.parse(x.last_sign_in_at)) + ' ago' : 'never') + ' · ' + x.votes + ' votes' + (x.email_confirmed ? '' : ' · not verified') })),
           x.is_admin ? h('span', { class: 'tag a', text: 'Admin' }) : null,
           x.id !== S.user.id ? h('button', { class: 'pill', onclick: () => adminAct(() => sb.rpc('admin_set_admin', { target: x.id, make_admin: !x.is_admin })), text: x.is_admin ? 'Remove admin' : 'Make admin' }) : null));
@@ -670,7 +672,7 @@ footer{padding:16px;text-align:center}
       else if (!r.length) box.append(h('div', { class: 'pad muted', text: 'No reported comments.' }));
       else for (const x of r) box.append(h('div', { style: rowStyle },
         h('div', { style: 'flex:1 1 260px;min-width:0' },
-          h('div', { class: 'small muted', text: x.masked + ' on "' + x.topic_title + '" · ' + x.reports + ' report' + (x.reports == 1 ? '' : 's') + (x.hidden ? ' · HIDDEN' : '') }),
+          h('div', { class: 'small muted', text: x.masked + (x.email ? ' (' + x.email + ')' : '') + ' on "' + x.topic_title + '" · ' + x.reports + ' report' + (x.reports == 1 ? '' : 's') + (x.hidden ? ' · HIDDEN' : '') }),
           h('div', { text: x.comment })),
         h('button', { class: 'pill', onclick: () => adminAct(() => sb.from('votes').update({ hidden: !x.hidden }).eq('id', x.vote_id)), text: x.hidden ? 'Unhide' : 'Hide' })));
     }
