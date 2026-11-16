@@ -45,7 +45,7 @@ header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-c
 .small{font-size:12px}
 .purge{margin:0 16px 8px;border-radius:14px;background:#1A1523;color:#fff;padding:10px 14px;font-size:13px}
 body.theme-dark .purge,body.purge-chat .purge{background:#2A0F3D}
-main{display:flex;flex-direction:column;gap:12px;padding:4px 14px 48px}
+main{display:flex;flex-direction:column;gap:12px;padding:4px 14px 48px;max-width:1240px;margin:0 auto;width:100%}
 .hero{font:800 34px/1.05 var(--display);letter-spacing:-.035em;padding:4px 6px 4px;margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 2px}
 .chip{min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:13px}
@@ -112,6 +112,81 @@ footer{padding:16px;text-align:center}
   .topicLayout{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px}
   .topicLayout > .card:first-child{position:sticky;top:90px}
 }
+
+/* ---- Gemini redesign ---- */
+header{background:var(--card);border-bottom:1px solid var(--line);padding:12px 20px}
+.app{max-width:none}
+.app > header{position:sticky;top:0}
+.wrap{max-width:1240px;margin:0 auto;width:100%}
+.brand{font-size:21px}
+.beta{font:700 10px Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;background:#D9F99D;color:#1A2E05;padding:3px 8px;border-radius:999px;margin-left:2px}
+.headright{display:flex;align-items:center;gap:10px}
+.roundbtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center}
+.roundbtn svg{width:16px;height:16px}
+.whopill{display:flex;align-items:center;gap:8px;min-height:38px;padding:0 14px 0 5px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:14px}
+.avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#A3E635);color:#fff;font:700 11px Inter,sans-serif;display:flex;align-items:center;justify-content:center}
+.textbtn{border:0;background:none;color:var(--muted);font-weight:500;min-height:38px;padding:0 6px}
+.dotpill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block}
+.livepill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:12px;color:var(--muted)}
+.livepill b{color:var(--text)} .livepill .ch{color:var(--a);font-weight:600}
+.livedot{width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 0 3px rgba(16,185,129,.18)}
+.hero{font-size:46px;margin-top:18px}
+.hero .ul{background:linear-gradient(transparent 82%,#A3E635 82%,#A3E635 94%,transparent 94%)}
+.herorow{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.lede{color:var(--muted);max-width:560px;margin:4px 0 0;padding:0 4px}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 10px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-top:20px}
+.toolbar .seg{display:flex;gap:2px;align-items:center}
+.toolbar .sep{width:1px;height:24px;background:var(--line);margin:0 6px}
+.toolbar .grow{flex:1}
+.sortbtn{min-height:36px;padding:0 14px;border-radius:10px;border:0;background:none;color:var(--text);font-size:14px;display:flex;align-items:center;gap:6px}
+.sortbtn[aria-selected="true"]{background:var(--ink);color:var(--inkText);font-weight:600}
+.chanbtn{min-height:32px;padding:0 12px;border-radius:10px;border:0;background:none;color:var(--muted);font-size:13px}
+.chanbtn[aria-selected="true"]{background:var(--tagA);color:var(--tagAText);font-weight:600}
+.search{position:relative;min-width:200px;flex:0 1 230px}
+.search input{width:100%;min-height:36px;border-radius:10px;padding:0 12px 0 32px;background:var(--soft);border:1px solid var(--line);font-size:13px}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.feed{margin-top:18px;gap:18px}
+.feed > .card{border:1px solid var(--line);padding:22px 22px 20px;gap:12px;box-shadow:0 1px 2px rgba(26,21,35,.04)}
+.feed .ctop{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+.feed .ctop b{color:var(--text);font-weight:600}
+.badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;display:inline-flex;gap:5px;align-items:center}
+.badge.picked{background:#ECFCCB;color:#3F6212}
+.badge.open{background:var(--soft);color:var(--text)}
+.badge.open::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--a)}
+.ctitle{margin:0;font:700 20px/1.25 var(--display);letter-spacing:-.02em;border:0;background:none;padding:0;text-align:left;color:inherit;cursor:pointer;min-height:50px}
+.thin{display:flex;gap:3px;height:5px}
+.thin span{border-radius:999px;display:block}
+.hint{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:46px;padding:0 12px;border-radius:12px;border:2px solid transparent;font-weight:700;font-size:15px}
+.opt small{font-weight:500;font-size:11px;opacity:.85}
+.opt.a{background:#7C3AED;color:#fff}
+.opt.b{background:#D9F99D;color:#1A2E05}
+.opt.sel{box-shadow:0 0 0 2px var(--card),0 0 0 4px #84CC16}
+.opt .pct{font:700 10px ui-monospace,monospace;padding:3px 6px;border-radius:6px;background:rgba(0,0,0,.18)}
+.opt.b .pct{background:rgba(26,46,5,.12)}
+.cmeta{display:flex;align-items:center;gap:16px;font-size:13px;color:var(--muted)}
+.cmeta span{display:inline-flex;align-items:center;gap:5px}
+.cmeta .r{margin-left:auto;font-size:11px}
+.enter{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;padding:0 18px;border-radius:14px;border:0;background:var(--ink);color:var(--inkText);font-weight:700;font-size:15px}
+.enter .l{display:flex;align-items:center;gap:8px}
+.enter .l::before{content:"";width:8px;height:8px;border-radius:50%;background:#A78BFA}
+.enter .r{font-size:13px;font-weight:600;opacity:.85}
+.locked{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;border-radius:14px;border:1.5px dashed var(--line);background:var(--soft);color:var(--muted);font-weight:600}
+.sitefoot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid var(--line);margin-top:40px;padding:24px 4px;font-size:13px;color:var(--muted);text-align:left}
+.sitefoot b{color:var(--text)}
+.toggle{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);cursor:pointer}
+.toggle input{appearance:none;width:34px;height:20px;border-radius:999px;background:var(--line);position:relative;margin:0;cursor:pointer}
+.toggle input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+.toggle input:checked{background:#7C3AED}
+.toggle input:checked::after{left:16px}
+@media (max-width:760px){
+  .hero{font-size:36px}
+  .whopill .as{display:none}
+  .toolbar .sep{display:none}
+  .search{flex:1 1 100%}
+  header{padding:10px 12px}
+}
 </style>
 </head>
 <body>
@@ -120,13 +195,14 @@ footer{padding:16px;text-align:center}
     <div style="display:flex;align-items:center;gap:6px">
       <button class="iconbtn" id="back" aria-label="Back" hidden><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       <button class="brand" id="home" aria-label="Speak Onion home">
-        <svg aria-hidden="true" width="32" height="32" viewBox="0 0 30 30"><rect width="30" height="30" rx="10" fill="#5B21B6"/><path d="M15 7c-4.5 3.2-6.5 6.2-6.5 9.3a6.5 6.5 0 0 0 13 0c0-3.1-2-6.1-6.5-9.3z" fill="none" stroke="#D9F99D" stroke-width="2"/><path d="M15 10.5c-1.6 1.9-2.4 3.8-2.4 5.8s.8 3.4 2.4 4.6c1.6-1.2 2.4-2.6 2.4-4.6s-.8-3.9-2.4-5.8z" fill="none" stroke="#D9F99D" stroke-width="1.5"/></svg>
-        <span>Speak Onion</span>
+        <svg aria-hidden="true" width="34" height="34" viewBox="0 0 30 30"><rect width="30" height="30" rx="9" fill="#6D28D9"/><path d="M15 7c-4.5 3.2-6.5 6.2-6.5 9.3a6.5 6.5 0 0 0 13 0c0-3.1-2-6.1-6.5-9.3z" fill="none" stroke="#fff" stroke-width="2"/><path d="M15 10.5c-1.6 1.9-2.4 3.8-2.4 5.8s.8 3.4 2.4 4.6c1.6-1.2 2.4-2.6 2.4-4.6s-.8-3.9-2.4-5.8z" fill="none" stroke="#fff" stroke-width="1.5"/></svg>
+        <span>Speak Onion</span><span class="beta">Beta</span>
       </button>
     </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div id="headRight"></div>
-      <button class="switch" id="theme" role="switch" aria-checked="false" aria-label="Dark mode"><span class="track"><span class="knob" id="knob"></span></span></button>
+    <div class="headright">
+      <div id="headRight" class="headright"></div>
+      <button class="roundbtn" id="theme" role="switch" aria-checked="false" aria-label="Dark mode"><span id="knob"></span></button>
+      <div id="headRight2" class="headright"></div>
     </div>
   </header>
   <div id="purgeBar" class="purge" hidden><b>Purge Hour</b> · Chats are unfiltered until :59. Slurs, threats and personal info are still blocked. Comments keep normal rules.</div>
@@ -337,11 +413,15 @@ footer{padding:16px;text-align:center}
     document.body.classList.toggle('purge-chat', S.screen === 'chat' && purgeOn());
     $('purgeBar').hidden = !purgeOn();
     $('back').hidden = S.screen === 'home';
-    const hr = $('headRight'); hr.replaceChildren();
-    if (sb && S.screen === 'home') {
-      if (S.isAdmin) hr.append(h('button', { class: 'pill', style: 'margin-right:6px', onclick: () => go('admin', { adminTab: S.adminTab || 'topics' }), text: 'Admin' }));
-      hr.append(S.user
-        ? h('button', { class: 'pill', onclick: async () => { await sb.auth.signOut(); }, text: 'Sign out' })
+    const hr = $('headRight'), hr2 = $('headRight2'); hr.replaceChildren(); hr2.replaceChildren();
+    if (sb && S.user && S.nickname) {
+      const initials = (S.nickname.match(/[A-Z]/g) || ['?']).slice(0, 2).join('');
+      hr.append(h('div', { class: 'whopill', title: 'Your permanent anonymous name' }, h('span', { class: 'avatar', 'aria-hidden': 'true', text: initials }), h('span', { class: 'as muted', text: 'as' }), h('b', { text: S.nickname })));
+    }
+    if (sb && S.screen !== 'chat') {
+      if (S.isAdmin) hr2.append(h('button', { class: 'pill dotpill', onclick: () => go('admin', { adminTab: S.adminTab || 'topics' }), text: 'Admin' }));
+      hr2.append(S.user
+        ? h('button', { class: 'textbtn', onclick: async () => { await sb.auth.signOut(); }, text: 'Sign out' })
         : h('button', { class: 'pill ink', onclick: () => go('signin'), text: 'Sign in' }));
     }
     view.replaceChildren(({ home: renderHome, topic: renderTopic, matching: renderMatching, chat: renderChat, rate: renderRate, newTopic: renderNewTopic, signin: renderSignin, admin: renderAdmin, notFound: renderNotFound })[S.screen]());
@@ -371,37 +451,89 @@ footer{padding:16px;text-align:center}
       h('label', { for: 'em', class: 'small muted', style: 'font-weight:600', text: 'Email' }), email, btn, msg));
   }
 
-  function renderHome() {
-    const main = h('main');
-    main.append(h('h2', { class: 'hero' }, 'Pick a side.', h('br'), 'Hear the other.'));
-    if (S.user && S.nickname) main.append(h('div', { class: 'small muted', style: 'padding:0 6px' }, 'You appear to others as ', h('b', { style: 'color:var(--text)', text: S.nickname })));
-    if (!sb) { main.append(h('div', { class: 'card pad' }, h('b', { text: 'Not connected yet' }), h('span', { class: 'muted', text: 'Add your Supabase URL and anon key to config.js.' }))); return main; }
-    if (S.error) main.append(h('div', { class: 'card pad', style: 'color:var(--err)', text: S.error }));
-    const tabs = h('div', { class: 'chips', role: 'tablist', 'aria-label': 'Sort topics' });
-    [['hot', 'Hot'], ['new', 'New'], ['top', 'Most votes']].forEach(([k, l]) => tabs.append(h('button', { class: 'chip', role: 'tab', 'aria-selected': String(S.sort === k), onclick: () => { S.sort = k; render(); }, text: l })));
-    if (S.isAdmin) tabs.append(h('button', { class: 'chip', style: 'margin-left:auto', onclick: () => go('newTopic'), text: '+ New topic' }));
-    main.append(tabs);
-    if (!S.topics.some((t) => !t.hidden)) { main.append(h('div', { class: 'card pad muted', text: S.loaded ? 'No topics yet.' : 'Loading topics…' })); return main; }
-    const rows = S.topics.filter((t) => !t.hidden).map((t) => ({ t, st: stats(t.id) }));
+  const ICON = {
+    flame: '<path d="M12 2c1 3 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 1-3s-3 1-3 5a6 6 0 0 0 12 0c0-6-6-8-6-11z" fill="#F97316"/>',
+    search: '<circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    bars: '<path d="M5 20V10M12 20V4M19 20v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2"/>',
+    check: '<path d="M5 12l5 5 9-10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    plus: '<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'
+  };
+  function topicCard(t, st) {
+    const mine = myVote(t.id);
+    const open = (pick) => go('topic', { topicId: t.id, pick: pick || null, draft: '', tab: mine ? mine.side : (pick || 'a') });
+    const opt = (side) => {
+      const label = side === 'a' ? t.labelA : t.labelB, pct = side === 'a' ? st.pa : st.pb, sel = mine && mine.side === side;
+      return h('button', { class: 'opt ' + side + (sel ? ' sel' : ''), onclick: () => open(mine ? null : side), 'aria-label': mine ? label + ' ' + pct + ' percent' + (sel ? ', your pick' : '') : 'Pick ' + label },
+        side === 'a' ? h('span', { text: label }) : null,
+        mine ? h('span', { class: 'pct', text: pct + '%' }) : (side === 'b' ? h('span', { text: label }) : null),
+        mine ? (side === 'b' ? h('span', { style: 'display:flex;align-items:center;gap:6px' }, h('span', { text: label }), sel ? svg(14, ICON.check) : null) : (sel ? svg(14, ICON.check) : null))
+             : h('small', { text: 'Pick →' }));
+    };
+    const total = st.total;
+    return h('article', { class: 'card' },
+      h('div', { class: 'ctop' }, h('span', {}, h('b', { text: t.community || 't/general' }), ' • ' + ago(t.createdAt)),
+        mine ? h('span', { class: 'badge picked' }, svg(11, ICON.check), 'You picked ' + (mine.side === 'a' ? t.labelA : t.labelB)) : h('span', { class: 'badge open', text: 'Open debate' })),
+      h('button', { class: 'ctitle', onclick: () => open(), text: t.title }),
+      mine || total
+        ? h('div', { class: 'thin', role: 'img', 'aria-label': t.labelA + ' ' + st.pa + ' percent, ' + t.labelB + ' ' + st.pb + ' percent' },
+            h('span', { style: 'flex:' + Math.max(st.pa, 1) + ';background:#7C3AED' }), h('span', { style: 'flex:' + Math.max(st.pb, 1) + ';background:#A3E635' }))
+        : h('div', { class: 'hint' }, h('span', { text: 'Be the first to cast a vote' }), h('span', { text: '0% — 0%' })),
+      h('div', { class: 'opts' }, opt('a'), opt('b')),
+      h('div', { class: 'cmeta' }, h('span', {}, svg(14, ICON.bars), fmt(total) + (total === 1 ? ' vote' : ' votes')),
+        h('span', {}, svg(14, ICON.chat), fmt(st.list.length) + (st.list.length === 1 ? ' comment' : ' comments')),
+        mine ? h('span', { class: 'r', text: 'Votes are final' }) : null),
+      mine
+        ? h('button', { class: 'enter', onclick: () => { S.topicId = t.id; startSeeking(); } }, h('span', { class: 'l', text: 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side' }), h('span', { class: 'r', text: 'Enter room →' }))
+        : h('button', { class: 'locked', onclick: () => open() }, svg(16, ICON.lock), 'Vote above to unlock chat'));
+  }
+  function feedRows() {
+    const q = (S.q || '').trim().toLowerCase();
+    const rows = S.topics.filter((t) => !t.hidden && (!S.chan || t.community === S.chan) && (!q || t.title.toLowerCase().includes(q)))
+      .map((t) => ({ t, st: stats(t.id) }));
     rows.sort((x, y) => S.sort === 'new' ? y.t.createdAt - x.t.createdAt
       : S.sort === 'top' ? y.st.total - x.st.total
+      : S.sort === 'close' ? (Math.abs(x.st.pa - 50) - Math.abs(y.st.pa - 50)) || (y.st.total - x.st.total)
       : (y.st.recent * 2 + y.st.total) - (x.st.recent * 2 + x.st.total));
+    return rows;
+  }
+  function fillFeed(feed) {
+    const rows = feedRows();
+    feed.replaceChildren(...(rows.length ? rows.map(({ t, st }) => topicCard(t, st))
+      : [h('div', { class: 'card pad muted', style: 'grid-column:1/-1', text: S.loaded ? 'No topics match.' : 'Loading topics…' })]));
+  }
+
+  function renderHome() {
+    const main = h('main');
+    const visible = S.topics.filter((t) => !t.hidden);
+    const voices = new Set(S.pv.map((v) => v.masked)).size;
+    const chans = [...new Set(visible.map((t) => t.community || 't/general'))].sort();
+    main.append(h('div', { style: 'margin-top:22px' }, h('span', { class: 'livepill' }, h('span', { class: 'livedot', 'aria-hidden': 'true' }),
+      h('b', { text: fmt(voices) + (voices === 1 ? ' voice' : ' voices') }), ' taking sides across ', h('span', { class: 'ch', text: chans.length + (chans.length === 1 ? ' channel' : ' channels') }))));
+    main.append(h('div', { class: 'herorow' },
+      h('div', {}, h('h2', { class: 'hero' }, 'Pick a side.', h('br'), h('span', { class: 'ul', text: 'Hear the other.' })),
+        h('p', { class: 'lede', text: 'Cast your stance to unlock direct, anonymous 1-on-1 conversations with people who voted the exact opposite.' })),
+      S.isAdmin ? h('button', { class: 'pill ink', style: 'min-height:48px;padding:0 22px;font-size:15px', onclick: () => go('newTopic') }, svg(16, ICON.plus), 'New topic') : null));
+    if (!sb) { main.append(h('div', { class: 'card pad' }, h('b', { text: 'Not connected yet' }), h('span', { class: 'muted', text: 'Add your Supabase URL and anon key to config.js.' }))); return main; }
+    if (S.error) main.append(h('div', { class: 'card pad', style: 'color:var(--err)', text: S.error }));
+
     const feed = h('div', { class: 'feed' });
-    for (const { t, st } of rows) {
-      const mine = myVote(t.id);
-      feed.append(h('article', { class: 'card' },
-        h('button', { class: 'topic', onclick: () => go('topic', { topicId: t.id, pick: null, draft: '', tab: mine ? mine.side : 'a' }) },
-          h('span', { class: 'toprow' }, h('span', { text: (t.community || 't/general') + ' · ' + ago(t.createdAt) }),
-            mine ? h('span', { class: 'tag a', text: 'You picked ' + (mine.side === 'a' ? t.labelA : t.labelB) }) : h('span', { class: 'tag b', text: 'Vote now' })),
-          h('span', { class: 'title', text: t.title }),
-          splitBar(t, st),
-          h('span', { class: 'meta' }, h('span', { text: fmt(st.total) + (st.total === 1 ? ' vote' : ' votes') }), h('span', { text: fmt(st.list.length) + (st.list.length === 1 ? ' comment' : ' comments') }))),
-        h('div', { class: 'cardfoot' }, mine
-          ? h('button', { class: 'pill ink wide', onclick: () => { S.topicId = t.id; startSeeking(); } }, chatIcon(), 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side')
-          : h('button', { class: 'pill ghost wide', onclick: () => go('topic', { topicId: t.id, pick: null, draft: '', tab: 'a' }) }, chatIcon(), 'Vote to unlock chat'))));
-    }
+    const sorts = h('div', { class: 'seg', role: 'tablist', 'aria-label': 'Sort topics' });
+    [['hot', 'Hot'], ['new', 'New'], ['top', 'Most votes'], ['close', 'Closest split']].forEach(([k, l]) => sorts.append(
+      h('button', { class: 'sortbtn', role: 'tab', 'aria-selected': String((S.sort || 'hot') === k), onclick: () => { S.sort = k; render(); } }, k === 'hot' ? svg(14, ICON.flame) : null, l)));
+    const chips = h('div', { class: 'seg', role: 'tablist', 'aria-label': 'Channels' });
+    [[null, 'All channels'], ...chans.map((c) => [c, c])].forEach(([k, l]) => chips.append(
+      h('button', { class: 'chanbtn', role: 'tab', 'aria-selected': String((S.chan || null) === k), onclick: () => { S.chan = k; render(); }, text: l })));
+    const q = h('input', { type: 'search', placeholder: 'Filter topics…', 'aria-label': 'Filter topics', value: S.q || '' });
+    q.addEventListener('input', () => { S.q = q.value; fillFeed(feed); });
+    main.append(h('div', { class: 'toolbar' }, sorts, h('span', { class: 'sep', 'aria-hidden': 'true' }), h('span', { class: 'grow' }), chips,
+      h('label', { class: 'search' }, svg(14, ICON.search), q)));
+    fillFeed(feed);
     main.append(feed);
-    if (S.isAdmin) main.append(h('footer', {}, h('label', { class: 'small muted' }, h('input', { type: 'checkbox', checked: S.simPurge || null, onchange: (e) => { S.simPurge = e.target.checked; render(); } }), ' Simulate Purge Hour (admin test switch, this browser only)')));
+    main.append(h('footer', { class: 'sitefoot' }, h('span', {}, h('b', { text: 'Speak Onion' }), ' • Anonymous cross-aisle dialogue'),
+      S.isAdmin ? h('label', { class: 'toggle' }, h('input', { type: 'checkbox', role: 'switch', checked: S.simPurge || null, onchange: (e) => { S.simPurge = e.target.checked; render(); } }),
+        h('span', {}, h('b', { text: 'Simulate Purge Hour' }), h('span', { class: 'muted', text: ' (admin test switch, this browser only)' }))) : null));
     return main;
   }
 
