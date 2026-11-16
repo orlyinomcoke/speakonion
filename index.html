@@ -176,11 +176,11 @@ footer{padding:16px;text-align:center}
   }
   function check(t, inChat) {
     const c = clean(t);
-    if (SLURS.some((w) => c.includes(w))) return 'Racist or hateful slurs are never allowed.';
-    if (THREATS.some((w) => c.includes(w))) return 'Threats are never allowed.';
+    if (SLURS.some((w) => c.includes(clean(w)))) return 'Racist or hateful slurs are never allowed.';
+    if (THREATS.some((w) => c.includes(clean(w)))) return 'Threats are never allowed.';
     if (/(\+?63|0)9\d{2}[\s-]?\d{3}[\s-]?\d{4}|https?:\/\/|www\.|\w+@\w+\.\w+|\.(com|ph|net|org)\b/i.test(t)) return 'No links, phone numbers or emails.';
     if (inChat && purgeOn()) return '';
-    if (PROFANITY.some((w) => c.includes(w))) return 'Please remove offensive words.';
+    if (PROFANITY.some((w) => c.includes(clean(w)))) return 'Please remove offensive words.';
     return '';
   }
 
