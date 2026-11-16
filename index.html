@@ -165,14 +165,37 @@ footer{padding:16px;text-align:center}
   const chatIcon = () => svg(16, '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>');
 
   // ---------- moderation (client side; schema.sql has a server-side backstop) ----------
-  const clean = (t) => t.toLowerCase().replace(/4|@/g, 'a').replace(/0/g, 'o').replace(/1|!/g, 'i').replace(/3/g, 'e').replace(/[^a-z]/g, '').replace(/(.)\1+/g, '$1');
-  const SLURS = ['slurplaceholder']; // TODO: replace with your real list
-  const THREATS = ['patayinkita', 'papatayinkita', 'mamatayka', 'killyou', 'iwilkil', 'iwilkilyou'];
-  const PROFANITY = ['puta', 'gago', 'tanga', 'bobo', 'fuck', 'shit', 'tangina', 'ulol', 'leche'];
+  const leet = (t) => t.toLowerCase().replace(/4|@/g, 'a').replace(/0/g, 'o').replace(/1|!/g, 'i').replace(/3/g, 'e');
+  const collapse = (t) => t.replace(/(.)\1+/g, '$1');
+  const clean = (t) => collapse(leet(t).replace(/[^a-z]/g, ''));
+  // Keep in sync with the banned_words / allowed_words tables (the server is the real check)
+  const SLURS = ['slurplaceholder']; // TODO: real list
+  const THREATS = ['patayinkita', 'papatayinkita', 'mamatayka', 'killyou', 'iwillkill'];
+  const PROFANITY = ['puta', 'gago', 'tanga', 'bobo', 'fuck', 'fucking', 'shit', 'tangina', 'ulol', 'leche', 'bitch', 'btch', 'biatch', 'pota', 'putang',
+    'pakyu', 'pokpok', 'tarantado', 'kupal', 'hinayupak', 'punyeta', 'kingina', 'ampota', 'asshole', 'bastard', 'cunt', 'motherfucker', 'fck', 'fuk', 'slut', 'whore'];
+  const ALLOWED = ['potato', 'potatoes', 'tangal', 'tangalin', 'tinangal', 'computation', 'reputation', 'dispute', 'bobong'].map(collapse);
+  let clockOffset = 0, serverPurge = null, purgeCheckedAt = 0;
+  function manilaHour() {
+    return Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'Asia/Manila' }).format(new Date(Date.now() + clockOffset))) % 24;
+  }
   function purgeOn() {
     if (S.simPurge) return true;
-    const hr = Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'Asia/Manila' }).format(new Date())) % 24;
+    const hr = manilaHour();
     return hr === 0 || hr === 12;
+  }
+  async function syncServerClock() {
+    if (!sb) return;
+    const t0 = Date.now();
+    const { data, error } = await sb.rpc('server_clock');
+    if (error || !data || !data[0]) return;
+    const t1 = Date.now();
+    clockOffset = Date.parse(data[0].now_utc) - (t0 + t1) / 2;
+    const before = S._purge; S._purge = purgeOn();
+    if (before !== undefined && before !== S._purge) render();
+  }
+  function hasProfanity(t) {
+    const tokens = leet(t).split(/[^a-z]+/).map(collapse).filter((w) => w && !ALLOWED.includes(w));
+    return tokens.some((w) => PROFANITY.some((p) => { const q = collapse(p); return w === q || (p.length >= 5 && w.startsWith(q)); }));
   }
   function check(t, inChat) {
     const c = clean(t);
@@ -180,7 +203,7 @@ footer{padding:16px;text-align:center}
     if (THREATS.some((w) => c.includes(clean(w)))) return 'Threats are never allowed.';
     if (/(\+?63|0)9\d{2}[\s-]?\d{3}[\s-]?\d{4}|https?:\/\/|www\.|\w+@\w+\.\w+|\.(com|ph|net|org)\b/i.test(t)) return 'No links, phone numbers or emails.';
     if (inChat && purgeOn()) return '';
-    if (PROFANITY.some((w) => c.includes(clean(w)))) return 'Please remove offensive words.';
+    if (hasProfanity(t)) return 'Please remove offensive words.';
     return '';
   }
 
@@ -665,6 +688,7 @@ footer{padding:16px;text-align:center}
   // ---------- wiring ----------
   $('home').addEventListener('click', () => go('home'));
   $('back').addEventListener('click', () => (S.screen === 'notFound') ? go('home') : go(S.screen === 'newTopic' && S.isAdmin ? 'admin' : ['topic', 'newTopic', 'signin', 'admin'].includes(S.screen) ? 'home' : 'topic'));
+  syncServerClock(); setInterval(syncServerClock, 300000);
   setInterval(() => { const on = purgeOn(); if (on !== S._purge) { S._purge = on; if (S.screen !== 'chat') render(); else { document.body.classList.toggle('purge-chat', on); $('purgeBar').hidden = !on; } } }, 30000);
   render();
   if (sb) {
