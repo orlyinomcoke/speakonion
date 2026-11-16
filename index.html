@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Pick a side. Hear the other. Vote on topics and chat anonymously with people who disagree.">
+<meta name="theme-color" content="#F6F3EE">
+<title>Speak Onion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#F6F3EE;--card:#FFFFFF;--line:#E2DDD5;--soft:#EFEBE4;--text:#1A1523;--muted:#6B6577;--a:#5B21B6;--aText:#FFFFFF;--b:#D9F99D;--bText:#1A2E05;--ink:#1A1523;--inkText:#FFFFFF;--tagA:#EDE9FE;--tagAText:#5B21B6;--tagB:#ECFCCB;--tagBText:#3F6212;--err:#B91C1C;--shadow:0 1px 2px rgba(26,21,35,.06),0 8px 24px rgba(26,21,35,.06);--display:"Bricolage Grotesque",Inter,sans-serif}
+body.theme-dark{--bg:#121016;--card:#1F1B26;--line:#34303D;--soft:#28232F;--text:#F4F1EA;--muted:#A39DAE;--a:#7C3AED;--ink:#D9F99D;--inkText:#1A2E05;--tagA:#3B2470;--tagAText:#DDD6FE;--tagB:#2A3A12;--tagBText:#D9F99D;--err:#FCA5A5;--shadow:none}
+body.purge-chat{--bg:#000;--card:#0B0B0B;--line:#262626;--soft:#161616;--text:#F2F2F2;--muted:#A8A8A8;--ink:#D9F99D;--inkText:#1A2E05;--err:#FCA5A5;--shadow:none}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,sans-serif;transition:background .2s}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.app{max-width:1120px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;background:var(--bg)}
+.brand{display:flex;align-items:center;gap:10px;border:0;background:none;padding:0;min-height:44px;font:800 22px var(--display);letter-spacing:-.03em}
+.iconbtn{width:44px;height:44px;border-radius:50%;border:0;background:var(--card);display:flex;align-items:center;justify-content:center;color:inherit}
+.switch{width:56px;height:44px;border:0;background:none;padding:0;display:flex;align-items:center;justify-content:center}
+.switch .track{position:relative;display:block;width:48px;height:28px;border-radius:999px;background:var(--line);transition:background .2s}
+.switch .knob{position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;transition:left .2s,background .2s}
+.switch[aria-checked="true"] .track{background:#D9F99D}
+.switch[aria-checked="true"] .knob{left:22px;background:#1A2E05}
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:14px}
+.pill.ink{background:var(--ink);border-color:var(--ink);color:var(--inkText)}
+.pill.sideA{background:var(--a);border-color:var(--a);color:var(--aText)}
+.pill.sideB{background:var(--b);border-color:var(--b);color:var(--bText)}
+.pill:disabled{opacity:.55;cursor:default}
+.wide{width:100%;min-height:48px;border-radius:14px}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.purge{margin:0 16px 8px;border-radius:14px;background:#1A1523;color:#fff;padding:10px 14px;font-size:13px}
+body.theme-dark .purge,body.purge-chat .purge{background:#2A0F3D}
+main{display:flex;flex-direction:column;gap:12px;padding:4px 14px 48px}
+.hero{font:800 34px/1.05 var(--display);letter-spacing:-.035em;padding:4px 6px 4px;margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 2px}
+.chip{min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:13px}
+.chip[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--inkText)}
+.feed{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.card{background:var(--card);border-radius:24px;box-shadow:var(--shadow);border:1px solid transparent}
+body.theme-dark .card{border-color:var(--line)}
+.topic{display:flex;flex-direction:column;gap:14px;width:100%;padding:18px 18px 4px;border:0;background:none;text-align:left;border-radius:24px}
+.topic .title,h1{margin:0;font:700 21px/1.2 var(--display);letter-spacing:-.02em}
+h1{font-size:26px}
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.tag{font-weight:600;font-size:12px;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.tag.a{background:var(--tagA);color:var(--tagAText)}
+.tag.b{background:var(--tagB);color:var(--tagBText)}
+.blocks{display:flex;gap:6px;height:46px}
+.blocks span{min-width:84px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 12px;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden}
+.blocks .ba{background:var(--a);color:var(--aText)}
+.blocks .bb{background:var(--b);color:var(--bText)}
+.meta{display:flex;gap:16px;font-size:12px;font-weight:500;color:var(--muted);padding-bottom:14px}
+.cardfoot{padding:0 18px 18px}
+.pad{padding:18px;display:flex;flex-direction:column;gap:14px}
+textarea,input[type=text]{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--soft)}
+textarea{resize:vertical}
+.err{color:var(--err);font-size:12px;min-height:16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tabs{display:flex;gap:8px;padding:14px 18px 6px}
+.tab{min-height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--text);font-weight:600;font-size:13px}
+.tab[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--inkText)}
+.comment{padding:14px 18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.comment .acts{display:flex;gap:12px}
+.link{border:0;background:none;padding:0;min-height:32px;color:var(--muted);font-weight:600;font-size:12px}
+.notice{border-radius:14px;padding:12px 14px;background:var(--soft);font-size:13px}
+.center{padding:72px 24px;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+.center b.big{font:700 22px var(--display)}
+.spinner{width:52px;height:52px;border-radius:50%;border:5px solid var(--line);border-top-color:var(--a);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.topicLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+.chat{display:flex;flex-direction:column;gap:12px;padding:0 14px 16px;min-height:calc(100vh - 70px);max-width:720px;width:100%;margin:0 auto}
+.chat .head{display:flex;align-items:center;gap:10px}
+.chat .ctx{padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.chat .msgs{flex:1;display:flex;flex-direction:column;gap:10px;padding:6px 2px;overflow-y:auto;min-height:280px}
+.bubble{max-width:78%;padding:12px 14px;white-space:pre-wrap;word-wrap:break-word;font-size:15px}
+.me{align-self:flex-end;background:var(--a);color:#fff;border-radius:20px 20px 6px 20px}
+.them{align-self:flex-start;background:var(--card);border-radius:20px 20px 20px 6px;box-shadow:var(--shadow)}
+.sys{align-self:center;font-size:12px;color:var(--muted);text-align:center}
+.compose{display:flex;gap:8px}
+.compose input{border-radius:999px;min-height:52px;background:var(--card);border:1px solid var(--line)}
+.send{width:52px;height:52px;border-radius:50%;border:0;background:#D9F99D;color:#1A2E05;display:flex;align-items:center;justify-content:center;flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+footer{padding:16px;text-align:center}
+@media (min-width:760px){
+  header{padding:18px 24px}
+  main{padding:4px 24px 64px}
+  .hero{font-size:52px;padding:8px 4px 8px}
+  .feed{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .purge{margin:0 24px 8px}
+}
+@media (min-width:1000px){
+  .feed{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .topicLayout{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px}
+  .topicLayout > .card:first-child{position:sticky;top:90px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="iconbtn" id="back" aria-label="Back" hidden><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button class="brand" id="home" aria-label="Speak Onion home">
+        <svg aria-hidden="true" width="32" height="32" viewBox="0 0 30 30"><rect width="30" height="30" rx="10" fill="#5B21B6"/><path d="M15 7c-4.5 3.2-6.5 6.2-6.5 9.3a6.5 6.5 0 0 0 13 0c0-3.1-2-6.1-6.5-9.3z" fill="none" stroke="#D9F99D" stroke-width="2"/><path d="M15 10.5c-1.6 1.9-2.4 3.8-2.4 5.8s.8 3.4 2.4 4.6c1.6-1.2 2.4-2.6 2.4-4.6s-.8-3.9-2.4-5.8z" fill="none" stroke="#D9F99D" stroke-width="1.5"/></svg>
+        <span>Speak Onion</span>
+      </button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div id="headRight"></div>
+      <button class="switch" id="theme" role="switch" aria-checked="false" aria-label="Dark mode"><span class="track"><span class="knob" id="knob"></span></span></button>
+    </div>
+  </header>
+  <div id="purgeBar" class="purge" hidden><b>Purge Hour</b> · Chats are unfiltered until :59. Slurs, threats and personal info are still blocked. Comments keep normal rules.</div>
+  <div id="view"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(() => {
+  const CFG = window.SPEAK_ONION_CONFIG || {};
+  const configured = CFG.SUPABASE_URL && !/YOUR-PROJECT/.test(CFG.SUPABASE_URL);
+  const sb = configured ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
+
+  // ---------- state ----------
+  const S = {
+    screen: 'home', topicId: null, sort: 'hot', tab: 'a',
+    topics: [], pv: [], mine: {}, reported: {},
+    loaded: false, error: '', busy: false,
+    user: null, isAdmin: false,
+    pick: null, draft: '', chat: null, simPurge: false, matchNote: ''
+  };
+  const $ = (id) => document.getElementById(id);
+  const view = $('view');
+
+  function h(tag, attrs, ...kids) {
+    const el = document.createElement(tag);
+    for (const k in (attrs || {})) {
+      const v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+      else if (k === 'class') el.className = v;
+      else if (k === 'style') el.style.cssText = v;
+      else if (k === 'text') el.textContent = v;
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+    for (const c of kids.flat()) if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(String(c)));
+    return el;
+  }
+  const svg = (w, inner) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('width', w); s.setAttribute('height', w); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); s.innerHTML = inner; return s; };
+  const chatIcon = () => svg(16, '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>');
+
+  // ---------- moderation (client side; schema.sql has a server-side backstop) ----------
+  const clean = (t) => t.toLowerCase().replace(/4|@/g, 'a').replace(/0/g, 'o').replace(/1|!/g, 'i').replace(/3/g, 'e').replace(/[^a-z]/g, '').replace(/(.)\1+/g, '$1');
+  const SLURS = ['slurplaceholder']; // TODO: replace with your real list
+  const THREATS = ['patayinkita', 'papatayinkita', 'mamatayka', 'killyou', 'iwilkil', 'iwilkilyou'];
+  const PROFANITY = ['puta', 'gago', 'tanga', 'bobo', 'fuck', 'shit', 'tangina', 'ulol', 'leche'];
+  function purgeOn() {
+    if (S.simPurge) return true;
+    const hr = Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'Asia/Manila' }).format(new Date())) % 24;
+    return hr === 0 || hr === 12;
+  }
+  function check(t, inChat) {
+    const c = clean(t);
+    if (SLURS.some((w) => c.includes(w))) return 'Racist or hateful slurs are never allowed.';
+    if (THREATS.some((w) => c.includes(w))) return 'Threats are never allowed.';
+    if (/(\+?63|0)9\d{2}[\s-]?\d{3}[\s-]?\d{4}|https?:\/\/|www\.|\w+@\w+\.\w+|\.(com|ph|net|org)\b/i.test(t)) return 'No links, phone numbers or emails.';
+    if (inChat && purgeOn()) return '';
+    if (PROFANITY.some((w) => c.includes(w))) return 'Please remove offensive words.';
+    return '';
+  }
+
+  // ---------- helpers ----------
+  const fmt = (n) => n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '') + 'k' : String(n);
+  function ago(ms) {
+    const s = Math.max(1, Math.round((Date.now() - ms) / 1000));
+    if (s < 60) return 'now'; if (s < 3600) return Math.round(s / 60) + 'm';
+    if (s < 86400) return Math.round(s / 3600) + 'h'; return Math.round(s / 86400) + 'd';
+  }
+  function stats(tid) {
+    let a = 0, b = 0, recent = 0; const list = [];
+    for (const v of S.pv) {
+      if (v.topic_id !== tid) continue;
+      if (v.side === 'a') a++; else b++;
+      if (Date.now() - v.at < 86400000) recent++;
+      if (v.comment) list.push(v);
+    }
+    const total = a + b, pa = total ? Math.round(a / total * 100) : 50;
+    return { a, b, total, pa, pb: 100 - pa, list, recent };
+  }
+  const myVote = (tid) => S.mine[tid] || null;
+  const curTopic = () => S.topics.find((t) => t.id === S.topicId);
+
+  function splitBar(t, st) {
+    return h('div', { class: 'blocks', role: 'img', 'aria-label': t.labelA + ' ' + st.pa + ' percent, ' + t.labelB + ' ' + st.pb + ' percent' },
+      h('span', { class: 'ba', style: 'flex:' + Math.max(st.pa, 1) + ' 1 0' }, h('span', { style: 'all:unset;overflow:hidden;text-overflow:ellipsis', text: t.labelA }), h('span', { style: 'all:unset', text: st.pa + '%' })),
+      h('span', { class: 'bb', style: 'flex:' + Math.max(st.pb, 1) + ' 1 0' }, h('span', { style: 'all:unset', text: st.pb + '%' }), h('span', { style: 'all:unset;overflow:hidden;text-overflow:ellipsis', text: t.labelB })));
+  }
+
+  function go(screen, extra) {
+    if (S.screen === 'chat' && screen !== 'chat') leaveChat();
+    if (S.screen === 'matching' && screen !== 'matching' && screen !== 'chat') stopSeeking();
+    Object.assign(S, { screen, error: '' }, extra || {});
+    render(); window.scrollTo(0, 0);
+  }
+
+  // ---------- data ----------
+  async function loadAll() {
+    if (!sb) return;
+    const [tq, vq] = await Promise.all([
+      sb.from('topics').select('id,title,community,label_a,label_b,created_at').order('created_at', { ascending: false }),
+      sb.from('public_votes').select('id,topic_id,side,comment,created_at,anon').limit(10000)
+    ]);
+    if (tq.error || vq.error) { S.error = 'Couldn\'t load topics. Check config.js and that schema.sql was run.'; S.loaded = true; return render(); }
+    S.topics = tq.data.map((t) => ({ id: t.id, title: t.title, community: t.community, labelA: t.label_a, labelB: t.label_b, createdAt: Date.parse(t.created_at) }));
+    S.pv = vq.data.map((v) => ({ ...v, at: Date.parse(v.created_at) }));
+    if (S.user) {
+      const mq = await sb.from('votes').select('id,topic_id,side').eq('user_id', S.user.id);
+      S.mine = {}; (mq.data || []).forEach((v) => { S.mine[v.topic_id] = v; });
+      const rq = await sb.from('reports').select('vote_id').eq('reporter', S.user.id);
+      S.reported = {}; (rq.data || []).forEach((r) => { S.reported[r.vote_id] = true; });
+      const pq = await sb.from('profiles').select('is_admin').eq('id', S.user.id).maybeSingle();
+      S.isAdmin = !!(pq.data && pq.data.is_admin);
+    } else { S.mine = {}; S.reported = {}; S.isAdmin = false; }
+    S.loaded = true;
+    const typing = document.activeElement && (document.activeElement.id === 'why' || document.activeElement.tagName === 'INPUT');
+    if (S.screen !== 'chat' && S.screen !== 'matching' && !typing) render();
+  }
+
+  // ---------- render ----------
+  function render() {
+    document.body.classList.toggle('purge-chat', S.screen === 'chat' && purgeOn());
+    $('purgeBar').hidden = !purgeOn();
+    $('back').hidden = S.screen === 'home';
+    const hr = $('headRight'); hr.replaceChildren();
+    if (sb && S.screen === 'home') {
+      hr.append(S.user
+        ? h('button', { class: 'pill', onclick: async () => { await sb.auth.signOut(); }, text: 'Sign out' })
+        : h('button', { class: 'pill ink', onclick: () => go('signin'), text: 'Sign in' }));
+    }
+    view.replaceChildren(({ home: renderHome, topic: renderTopic, matching: renderMatching, chat: renderChat, rate: renderRate, newTopic: renderNewTopic, signin: renderSignin })[S.screen]());
+  }
+
+  function renderSignin() {
+    const email = h('input', { type: 'email', id: 'em', autocomplete: 'email', placeholder: 'you@example.com', style: 'width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--soft)' });
+    const msg = h('div', { class: 'small muted', role: 'status' });
+    const btn = h('button', { class: 'pill ink wide', text: 'Send me a sign-in link' });
+    const submit = async (e) => {
+      e.preventDefault();
+      const v = email.value.trim(); if (!/^\S+@\S+\.\S+$/.test(v)) { msg.textContent = 'Enter a valid email.'; return; }
+      btn.disabled = true; msg.textContent = 'Sending…';
+      const { error } = await sb.auth.signInWithOtp({ email: v, options: { emailRedirectTo: location.origin + location.pathname } });
+      btn.disabled = false;
+      msg.textContent = error ? 'Couldn\'t send: ' + error.message : 'Check your inbox and tap the link to sign in. It also verifies your email.';
+    };
+    return h('main', {}, h('form', { class: 'card pad', style: 'max-width:440px;width:100%;margin:24px auto 0', onsubmit: submit },
+      h('h1', { text: 'Sign in' }),
+      h('span', { class: 'muted', text: 'No password needed. We email you a link. Your email is never shown to anyone.' }),
+      h('label', { for: 'em', class: 'small muted', style: 'font-weight:600', text: 'Email' }), email, btn, msg));
+  }
+
+  function renderHome() {
+    const main = h('main');
+    main.append(h('h2', { class: 'hero' }, 'Pick a side.', h('br'), 'Hear the other.'));
+    if (!sb) { main.append(h('div', { class: 'card pad' }, h('b', { text: 'Not connected yet' }), h('span', { class: 'muted', text: 'Add your Supabase URL and anon key to config.js.' }))); return main; }
+    if (S.error) main.append(h('div', { class: 'card pad', style: 'color:var(--err)', text: S.error }));
+    const tabs = h('div', { class: 'chips', role: 'tablist', 'aria-label': 'Sort topics' });
+    [['hot', 'Hot'], ['new', 'New'], ['top', 'Most votes']].forEach(([k, l]) => tabs.append(h('button', { class: 'chip', role: 'tab', 'aria-selected': String(S.sort === k), onclick: () => { S.sort = k; render(); }, text: l })));
+    if (S.isAdmin) tabs.append(h('button', { class: 'chip', style: 'margin-left:auto', onclick: () => go('newTopic'), text: '+ New topic' }));
+    main.append(tabs);
+    if (!S.topics.length) { main.append(h('div', { class: 'card pad muted', text: S.loaded ? 'No topics yet.' : 'Loading topics…' })); return main; }
+    const rows = S.topics.map((t) => ({ t, st: stats(t.id) }));
+    rows.sort((x, y) => S.sort === 'new' ? y.t.createdAt - x.t.createdAt
+      : S.sort === 'top' ? y.st.total - x.st.total
+      : (y.st.recent * 2 + y.st.total) - (x.st.recent * 2 + x.st.total));
+    const feed = h('div', { class: 'feed' });
+    for (const { t, st } of rows) {
+      const mine = myVote(t.id);
+      feed.append(h('article', { class: 'card' },
+        h('button', { class: 'topic', onclick: () => go('topic', { topicId: t.id, pick: null, draft: '', tab: mine ? mine.side : 'a' }) },
+          h('span', { class: 'toprow' }, h('span', { text: (t.community || 't/general') + ' · ' + ago(t.createdAt) }),
+            mine ? h('span', { class: 'tag a', text: 'You picked ' + (mine.side === 'a' ? t.labelA : t.labelB) }) : h('span', { class: 'tag b', text: 'Vote now' })),
+          h('span', { class: 'title', text: t.title }),
+          splitBar(t, st),
+          h('span', { class: 'meta' }, h('span', { text: fmt(st.total) + ' votes' }), h('span', { text: fmt(st.list.length) + ' comments' }))),
+        mine ? h('div', { class: 'cardfoot' },
+          h('button', { class: 'pill ink wide', onclick: () => { S.topicId = t.id; startSeeking(); } }, chatIcon(), 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side')) : null));
+    }
+    main.append(feed);
+    if (S.isAdmin) main.append(h('footer', {}, h('label', { class: 'small muted' }, h('input', { type: 'checkbox', checked: S.simPurge || null, onchange: (e) => { S.simPurge = e.target.checked; render(); } }), ' Simulate Purge Hour (admin test switch, this browser only)')));
+    return main;
+  }
+
+  function renderTopic() {
+    const t = curTopic(); if (!t) return h('main', {}, h('div', { class: 'card pad', text: 'Topic not found.' }));
+    const st = stats(t.id), mine = myVote(t.id);
+    const box = h('article', { class: 'card pad' },
+      h('div', { class: 'toprow' }, h('span', { text: (t.community || 't/general') + ' · ' + fmt(st.total) + ' votes' })),
+      h('h1', { text: t.title }));
+    if (!S.user) {
+      box.append(h('div', { class: 'notice' }, 'Sign in with your email to vote and chat. ', h('button', { class: 'pill ink', style: 'margin-top:8px', onclick: () => go('signin'), text: 'Sign in' })));
+    } else if (!mine) {
+      const rg = h('div', { role: 'radiogroup', 'aria-label': 'Your vote', style: 'display:flex;gap:8px' },
+        h('button', { class: 'pill' + (S.pick === 'a' ? ' sideA' : ''), role: 'radio', 'aria-checked': String(S.pick === 'a'), onclick: () => { S.pick = 'a'; S.error = ''; render(); } }, t.labelA),
+        h('button', { class: 'pill' + (S.pick === 'b' ? ' sideB' : ''), role: 'radio', 'aria-checked': String(S.pick === 'b'), onclick: () => { S.pick = 'b'; S.error = ''; render(); } }, t.labelB));
+      const ta = h('textarea', { id: 'why', rows: '3', maxlength: '500', placeholder: 'Add a comment (required)' });
+      ta.value = S.draft;
+      const cnt = h('span', { class: 'small muted', text: S.draft.length + '/500' });
+      ta.addEventListener('input', () => { S.draft = ta.value; cnt.textContent = ta.value.length + '/500'; });
+      box.append(rg, h('label', { for: 'why', class: 'small muted', style: 'font-weight:600', text: 'Explain your vote' }), ta,
+        h('div', { class: 'row' }, h('span', { class: 'err', role: 'alert', text: S.error }), h('span', { style: 'display:flex;gap:8px;align-items:center' }, cnt,
+          h('button', { class: 'pill ink', disabled: S.busy || null, onclick: submitVote, text: S.busy ? 'Posting…' : 'Post' }))));
+    }
+    box.append(splitBar(t, st));
+    if (mine) box.append(h('button', { class: 'pill ink wide', onclick: startSeeking }, chatIcon(), 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side'));
+
+    const ca = st.list.filter((c) => c.side === 'a'), cb = st.list.filter((c) => c.side === 'b');
+    const shown = (S.tab === 'a' ? ca : cb).sort((x, y) => y.at - x.at);
+    const sec = h('section', { class: 'card' },
+      h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Comments by side' },
+        h('button', { class: 'tab', role: 'tab', 'aria-selected': String(S.tab === 'a'), onclick: () => { S.tab = 'a'; render(); }, text: t.labelA + ' · ' + ca.length }),
+        h('button', { class: 'tab', role: 'tab', 'aria-selected': String(S.tab === 'b'), onclick: () => { S.tab = 'b'; render(); }, text: t.labelB + ' · ' + cb.length })));
+    if (!shown.length) sec.append(h('div', { class: 'pad muted small', text: 'No comments on this side yet.' }));
+    for (const c of shown) {
+      const isMine = mine && mine.id === c.id;
+      sec.append(h('div', { class: 'comment' },
+        h('div', { class: 'small muted' }, h('b', { style: 'color:var(--text)', text: isMine ? 'you' : c.anon }), ' ', h('span', { class: 'tag ' + c.side, style: 'padding:2px 8px', text: c.side === 'a' ? t.labelA : t.labelB }), ' · ' + ago(c.at)),
+        h('div', { text: c.comment }),
+        h('div', { class: 'acts' },
+          !isMine && S.user ? h('button', { class: 'link', disabled: S.reported[c.id] || null, onclick: () => report(c.id), text: S.reported[c.id] ? 'Reported' : 'Report' }) : null,
+          S.isAdmin ? h('button', { class: 'link', style: 'color:var(--err)', onclick: () => hideComment(c.id), text: 'Hide (admin)' }) : null)));
+    }
+    return h('main', {}, h('div', { class: 'topicLayout' }, box, sec));
+  }
+
+  function renderNewTopic() {
+    const f = { title: h('input', { type: 'text', id: 'nt', maxlength: '140', placeholder: 'e.g. Is pineapple on pizza okay?' }),
+      comm: h('input', { type: 'text', id: 'nc', maxlength: '30', placeholder: 'food' }),
+      a: h('input', { type: 'text', id: 'na', maxlength: '24', value: 'Yes' }), b: h('input', { type: 'text', id: 'nb', maxlength: '24', value: 'No' }) };
+    const err = h('span', { class: 'err', role: 'alert' });
+    return h('main', {}, h('div', { class: 'card pad', style: 'max-width:560px;width:100%;margin:0 auto' }, h('h1', { text: 'New topic' }),
+      h('label', { for: 'nt', class: 'small muted', text: 'Question' }), f.title,
+      h('label', { for: 'nc', class: 'small muted', text: 'Community' }), f.comm,
+      h('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:8px' },
+        h('div', {}, h('label', { for: 'na', class: 'small muted', text: 'Side A' }), f.a),
+        h('div', {}, h('label', { for: 'nb', class: 'small muted', text: 'Side B' }), f.b)),
+      h('div', { class: 'row' }, err, h('button', { class: 'pill ink', onclick: async (e) => {
+        const title = f.title.value.trim(), la = f.a.value.trim(), lb = f.b.value.trim();
+        const comm = f.comm.value.trim().replace(/^t\//, '').replace(/[^A-Za-z0-9_]/g, '').toLowerCase() || 'general';
+        if (title.length < 8 || !la || !lb) { err.textContent = 'Add a question (8+ characters) and both side names.'; return; }
+        const bad = check(title + ' ' + la + ' ' + lb, false); if (bad) { err.textContent = bad; return; }
+        e.target.disabled = true;
+        const { error } = await sb.from('topics').insert({ title, community: 't/' + comm, label_a: la, label_b: lb, created_by: S.user.id });
+        if (error) { err.textContent = error.message; e.target.disabled = false; return; }
+        await loadAll(); go('home');
+      }, text: 'Publish' }))));
+  }
+
+  // ---------- writes ----------
+  async function submitVote() {
+    const t = curTopic();
+    if (!S.pick) { S.error = 'Pick a side first.'; return render(); }
+    const text = S.draft.trim();
+    if (text.length < 10) { S.error = 'Write at least 10 characters.'; return render(); }
+    const bad = check(text, false); if (bad) { S.error = bad; return render(); }
+    S.busy = true; render();
+    const { error } = await sb.from('votes').insert({ topic_id: t.id, side: S.pick, comment: text });
+    S.busy = false;
+    if (error) {
+      S.error = /row-level security/i.test(error.message) ? 'Please verify your email first (use the sign-in link we sent).'
+        : /duplicate/i.test(error.message) ? 'You already voted on this topic.' : error.message;
+      return render();
+    }
+    S.tab = S.pick; S.draft = ''; S.pick = null;
+    await loadAll(); render();
+  }
+  async function report(voteId) {
+    S.reported = { ...S.reported, [voteId]: true }; render();
+    await sb.from('reports').insert({ vote_id: voteId });
+  }
+  async function hideComment(voteId) {
+    const { error } = await sb.from('votes').update({ hidden: true }).eq('id', voteId);
+    if (!error) { await loadAll(); render(); }
+  }
+
+  // ---------- chat (Supabase Realtime) ----------
+  let lobby = null;
+  function startSeeking() {
+    const t = curTopic(), mine = myVote(t.id);
+    go('matching', { matchNote: '' });
+    const since = Date.now();
+    lobby = sb.channel('lobby-' + t.id, { config: { presence: { key: S.user.id } } });
+    lobby.on('presence', { event: 'sync' }, () => tryMatch(t, mine));
+    lobby.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') await lobby.track({ side: mine.side, since, uid: S.user.id });
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { S.matchNote = 'Couldn\'t reach the chat server. Try again.'; render(); }
+    });
+  }
+  function stopSeeking() { if (lobby) { const l = lobby; lobby = null; l.untrack().catch(() => {}); sb.removeChannel(l); } }
+  function tryMatch(t, mine) {
+    if (S.screen !== 'matching' || !lobby) return;
+    const state = lobby.presenceState(), people = [];
+    for (const key in state) { const m = state[key][0]; if (m && (m.side === 'a' || m.side === 'b')) people.push({ uid: key, side: m.side, since: m.since || 0 }); }
+    const byTime = (x, y) => x.since - y.since || (x.uid < y.uid ? -1 : 1);
+    const A = people.filter((p) => p.side === 'a').sort(byTime), B = people.filter((p) => p.side === 'b').sort(byTime);
+    const mineList = mine.side === 'a' ? A : B, other = mine.side === 'a' ? B : A;
+    const i = mineList.findIndex((p) => p.uid === S.user.id);
+    if (i < 0 || i >= other.length) return;
+    const partner = other[i];
+    const name = 'chat-' + t.id + '-' + [S.user.id, partner.uid].sort().join('-');
+    stopSeeking();
+    openChat(name, partner);
+  }
+  function openChat(name, partner) {
+    const t = curTopic(), mine = myVote(t.id);
+    const ch = sb.channel(name, { config: { broadcast: { self: false }, presence: { key: S.user.id } } });
+    S.chat = { name, ch, partnerUid: partner.uid, partnerSide: mine.side === 'a' ? 'b' : 'a', ended: false, joined: false,
+      msgs: [{ sys: true, text: 'Connected. Share one reason for your pick, then ask what made them pick the other side.' }] };
+    ch.on('broadcast', { event: 'msg' }, ({ payload }) => {
+      if (!S.chat || S.chat.ch !== ch) return;
+      const text = payload && typeof payload.text === 'string' ? payload.text.slice(0, 300) : '';
+      if (!text) return;
+      const bad = check(text, true);
+      S.chat.msgs.push(bad ? { sys: true, text: 'A message was blocked: ' + bad } : { me: false, text });
+      renderMsgs();
+    });
+    ch.on('presence', { event: 'leave' }, ({ key }) => {
+      if (S.chat && S.chat.ch === ch && key === partner.uid && !S.chat.ended) { S.chat.ended = true; S.chat.msgs.push({ sys: true, text: 'The other person left the chat.' }); renderMsgs(); }
+    });
+    ch.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') { S.chat && (S.chat.joined = true); await ch.track({ side: mine.side }); }
+    });
+    go('chat');
+  }
+  function leaveChat() { if (!S.chat) return; const ch = S.chat.ch; S.chat = null; ch.untrack().catch(() => {}); sb.removeChannel(ch); }
+
+  function renderMatching() {
+    const t = curTopic(), mine = myVote(t.id), other = mine.side === 'a' ? t.labelB : t.labelA;
+    return h('main', {}, h('div', { class: 'center' },
+      S.matchNote ? h('b', { text: S.matchNote }) : h('div', { class: 'spinner', 'aria-hidden': 'true' }),
+      h('b', { class: 'big', text: 'Finding someone who picked ' + other + '…' }),
+      h('span', { class: 'small muted', text: 'You both stay anonymous. They need to tap "Talk to the other side" on this topic too.' }),
+      h('button', { class: 'pill', onclick: () => go('topic'), text: 'Cancel' })));
+  }
+  function renderMsgs() {
+    const box = $('msgs'); if (!box || !S.chat) return;
+    box.replaceChildren(...S.chat.msgs.map((m) => h('div', { class: 'bubble ' + (m.sys ? 'sys' : m.me ? 'me' : 'them'), text: m.text })));
+    box.scrollTop = box.scrollHeight;
+    const inp = $('msg'); if (inp) inp.disabled = !!S.chat.ended;
+  }
+  function renderChat() {
+    const t = curTopic(), c = S.chat;
+    const otherLabel = c && c.partnerSide === 'a' ? t.labelA : t.labelB;
+    const myLabel = c && c.partnerSide === 'a' ? t.labelB : t.labelA;
+    const inp = h('input', { type: 'text', id: 'msg', maxlength: '300', placeholder: 'Say something respectful…', autocomplete: 'off' });
+    const err = h('div', { class: 'err', role: 'alert' });
+    const send = async () => {
+      const text = inp.value.trim(); if (!text || !S.chat || S.chat.ended) return;
+      const bad = check(text, true); if (bad) { err.textContent = bad; return; }
+      if (!S.chat.joined) { err.textContent = 'Still connecting…'; return; }
+      err.textContent = '';
+      const r = await S.chat.ch.send({ type: 'broadcast', event: 'msg', payload: { text } });
+      if (r !== 'ok') { err.textContent = 'Message not sent. Try again.'; return; }
+      S.chat.msgs.push({ me: true, text }); inp.value = ''; renderMsgs();
+    };
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+    const node = h('section', { class: 'chat' },
+      h('div', { class: 'head' },
+        h('div', { style: 'flex:1' }, h('b', { style: 'font:700 18px var(--display)', text: 'Anonymous' }), h('div', { class: 'small muted' }, 'Picked ', h('b', { text: otherLabel }), purgeOn() ? ' · Purge Hour' : '')),
+        h('button', { class: 'pill ink', onclick: () => go('rate'), text: 'End' })),
+      h('div', { class: 'card ctx' },
+        h('span', { class: 'small muted', style: 'font-weight:600;letter-spacing:.06em;text-transform:uppercase', text: 'The topic' }),
+        h('span', { style: 'font:700 16px/1.3 var(--display)', text: t.title }),
+        h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' },
+          h('span', { class: 'pill sideA', style: 'min-height:28px;padding:0 10px;font-size:12px', text: 'You · ' + myLabel }),
+          h('span', { class: 'pill sideB', style: 'min-height:28px;padding:0 10px;font-size:12px', text: 'Them · ' + otherLabel }))),
+      h('div', { class: 'msgs', id: 'msgs', 'aria-live': 'polite' }),
+      err,
+      h('div', { class: 'compose' }, h('label', { for: 'msg', class: 'sr', text: 'Message' }), inp,
+        h('button', { class: 'send', 'aria-label': 'Send message', onclick: send }, svg(20, '<path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'))));
+    setTimeout(() => { renderMsgs(); inp.focus(); }, 0);
+    return node;
+  }
+  function renderRate() {
+    return h('main', {}, h('div', { class: 'center' }, h('b', { class: 'big', text: 'Chat ended' }),
+      h('span', { class: 'muted', text: 'Was the other person respectful?' }),
+      h('div', { style: 'display:flex;gap:8px' }, h('button', { class: 'pill', onclick: () => go('topic'), text: 'Yes' }), h('button', { class: 'pill', onclick: () => go('topic'), text: 'No' }))));
+  }
+
+  // ---------- theme ----------
+  const SUN = '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  const MOON = '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D9F99D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  function applyTheme(dark) { document.body.classList.toggle('theme-dark', dark); $('theme').setAttribute('aria-checked', String(dark)); $('knob').innerHTML = dark ? MOON : SUN; }
+  let saved = null; try { saved = localStorage.getItem('so-theme'); } catch (e) { }
+  applyTheme(saved ? saved === 'dark' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches));
+  $('theme').addEventListener('click', () => { const d = !document.body.classList.contains('theme-dark'); applyTheme(d); try { localStorage.setItem('so-theme', d ? 'dark' : 'light'); } catch (e) { } });
+
+  // ---------- wiring ----------
+  $('home').addEventListener('click', () => go('home'));
+  $('back').addEventListener('click', () => go(['topic', 'newTopic', 'signin'].includes(S.screen) ? 'home' : 'topic'));
+  setInterval(() => { const on = purgeOn(); if (on !== S._purge) { S._purge = on; if (S.screen !== 'chat') render(); else { document.body.classList.toggle('purge-chat', on); $('purgeBar').hidden = !on; } } }, 30000);
+  render();
+  if (sb) {
+    sb.auth.onAuthStateChange((_e, session) => {
+      const was = S.user && S.user.id; S.user = session ? session.user : null;
+      if ((S.user && S.user.id) !== was) { if (S.screen === 'signin' && S.user) S.screen = 'home'; loadAll(); }
+    });
+    sb.auth.getSession().then(({ data }) => { S.user = data.session ? data.session.user : null; loadAll(); });
+    setInterval(() => { if (document.visibilityState === 'visible') loadAll(); }, 20000);
+  }
+})();
+</script>
+</body>
+</html>
