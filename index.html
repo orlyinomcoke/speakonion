@@ -15,9 +15,9 @@
 <meta property="og:image" content="/icon-512.png">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&display=swap">
 <style>
-:root{--bg:#F6F3EE;--card:#FFFFFF;--line:#E2DDD5;--soft:#EFEBE4;--text:#1A1523;--muted:#6B6577;--a:#5B21B6;--aText:#FFFFFF;--b:#D9F99D;--bText:#1A2E05;--ink:#1A1523;--inkText:#FFFFFF;--tagA:#EDE9FE;--tagAText:#5B21B6;--tagB:#ECFCCB;--tagBText:#3F6212;--err:#B91C1C;--shadow:0 1px 2px rgba(26,21,35,.06),0 8px 24px rgba(26,21,35,.06);--display:"Bricolage Grotesque",Inter,sans-serif}
+:root{--bg:#F6F3EE;--card:#FFFFFF;--line:#E2DDD5;--soft:#EFEBE4;--text:#1A1523;--muted:#6B6577;--a:#5B21B6;--aText:#FFFFFF;--b:#D9F99D;--bText:#1A2E05;--ink:#1A1523;--inkText:#FFFFFF;--tagA:#EDE9FE;--tagAText:#5B21B6;--tagB:#ECFCCB;--tagBText:#3F6212;--err:#B91C1C;--shadow:0 1px 2px rgba(26,21,35,.06),0 8px 24px rgba(26,21,35,.06);--display:"Plus Jakarta Sans",Inter,system-ui,sans-serif}
 body.theme-dark{--bg:#121016;--card:#1F1B26;--line:#34303D;--soft:#28232F;--text:#F4F1EA;--muted:#A39DAE;--a:#7C3AED;--ink:#D9F99D;--inkText:#1A2E05;--tagA:#3B2470;--tagAText:#DDD6FE;--tagB:#2A3A12;--tagBText:#D9F99D;--err:#FCA5A5;--shadow:none}
 body.purge-chat{--bg:#000;--card:#0B0B0B;--line:#262626;--soft:#161616;--text:#F2F2F2;--muted:#A8A8A8;--ink:#D9F99D;--inkText:#1A2E05;--err:#FCA5A5;--shadow:none}
 *{box-sizing:border-box}
@@ -209,6 +209,15 @@ html,body{overflow-x:hidden}
   .search{flex:1 1 100%}
 }
 @media (max-width:400px){ .beta{display:none} }
+
+/* ---- Typography: Plus Jakarta Sans for display, Inter for UI ---- */
+html,body{font-family:Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"cv11" 1}
+.brand,.hero,h1,.ctitle,.topic .title,.center b.big{font-family:var(--display);letter-spacing:-0.03em}
+.brand{font-weight:800}
+.hero{font-weight:800}
+h1,.ctitle,.topic .title{font-weight:700}
+.opt,.pct,.cmeta,.livepill,.sortbtn,.chanbtn,.badge,.enter,.locked,.pill,.blocks{font-family:Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.opt .pct{font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:11px}
 </style>
 </head>
 <body>
