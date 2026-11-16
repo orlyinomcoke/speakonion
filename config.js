@@ -1,6 +1,5 @@
-// Fill these in from Supabase: Project Settings → API (or "Connect" → App frameworks).
-// The anon key is meant to be public; your data is protected by the rules in schema.sql.
+// Supabase project settings. The anon key is public by design; data is protected by the rules in schema.sql.
 window.SPEAK_ONION_CONFIG = {
-  SUPABASE_URL: 'https://YOUR-PROJECT-REF.supabase.co',
-  SUPABASE_ANON_KEY: 'YOUR-ANON-PUBLIC-KEY'
+  SUPABASE_URL: 'https://dnieishrhztsxhfqkaqv.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuaWVpc2hyaHp0c3hoZnFrYXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4MTc5MjYsImV4cCI6MjExMDM5MzkyNn0.iOdxu4CX9sDsHRrGf5dXicXEY7sv1pzWxIGQMxNmYzU'
 };
