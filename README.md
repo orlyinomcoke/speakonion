@@ -91,3 +91,6 @@ Run `migration-004-chat.sql` once in the SQL Editor, then in Supabase go to
 - Matching now happens in the database, so both people are always paired together.
 - Each chat room (`match:<id>`) only lets in the two matched people.
 - The chat shows the other person's masked name (e.g. `o***@*.com`).
+
+## Migration 008 – live counts
+Run `migration-008-live.sql` once. It lets the home page show "N online" and refresh vote counts instantly when anyone votes.

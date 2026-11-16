@@ -162,7 +162,12 @@ header{background:var(--card);border-bottom:1px solid var(--line);padding:12px 2
 .opt small{font-weight:500;font-size:11px;opacity:.85}
 .opt.a{background:#7C3AED;color:#fff}
 .opt.b{background:#D9F99D;color:#1A2E05}
-.opt.sel{box-shadow:0 0 0 2px var(--card),0 0 0 4px #84CC16}
+.opt.sel{background:#D9F99D;color:#1A2E05;box-shadow:0 0 0 2px var(--card),0 0 0 4px #84CC16}
+.opt.sel .pct{background:rgba(26,46,5,.12)}
+.opt.dim{background:var(--soft);color:var(--muted)}
+.opt.dim .pct{background:rgba(0,0,0,.07)}
+@keyframes resort{from{opacity:.35;transform:translateY(6px)}to{opacity:1;transform:none}}
+.feed.resorted > .card{animation:resort .28s ease}
 .opt .pct{font:700 10px ui-monospace,monospace;padding:3px 6px;border-radius:6px;background:rgba(0,0,0,.18)}
 .opt.b .pct{background:rgba(26,46,5,.12)}
 .cmeta{display:flex;align-items:center;gap:16px;font-size:13px;color:var(--muted)}
@@ -482,7 +487,7 @@ html,body{overflow-x:hidden}
     const open = (pick) => go('topic', { topicId: t.id, pick: pick || null, draft: '', tab: mine ? mine.side : (pick || 'a') });
     const opt = (side) => {
       const label = side === 'a' ? t.labelA : t.labelB, pct = side === 'a' ? st.pa : st.pb, sel = mine && mine.side === side;
-      return h('button', { class: 'opt ' + side + (sel ? ' sel' : ''), onclick: () => open(mine ? null : side), 'aria-label': mine ? label + ' ' + pct + ' percent' + (sel ? ', your pick' : '') : 'Pick ' + label },
+      return h('button', { class: 'opt ' + side + (sel ? ' sel' : (mine ? ' dim' : '')), onclick: () => open(mine ? null : side), 'aria-label': mine ? label + ' ' + pct + ' percent' + (sel ? ', your pick' : '') : 'Pick ' + label },
         side === 'a' ? h('span', { text: label }) : null,
         mine ? h('span', { class: 'pct', text: pct + '%' }) : (side === 'b' ? h('span', { text: label }) : null),
         mine ? (side === 'b' ? h('span', { style: 'display:flex;align-items:center;gap:6px' }, h('span', { text: label }), sel ? svg(14, ICON.check) : null) : (sel ? svg(14, ICON.check) : null))
@@ -495,7 +500,7 @@ html,body{overflow-x:hidden}
       h('button', { class: 'ctitle', onclick: () => open(), text: t.title }),
       mine || total
         ? h('div', { class: 'thin', role: 'img', 'aria-label': t.labelA + ' ' + st.pa + ' percent, ' + t.labelB + ' ' + st.pb + ' percent' },
-            h('span', { style: 'flex:' + Math.max(st.pa, 1) + ';background:#7C3AED' }), h('span', { style: 'flex:' + Math.max(st.pb, 1) + ';background:#A3E635' }))
+            h('span', { style: 'flex:' + Math.max(st.pa, 1) + ';background:' + (mine ? (mine.side === 'a' ? '#A3E635' : 'var(--line)') : '#7C3AED') }), h('span', { style: 'flex:' + Math.max(st.pb, 1) + ';background:' + (mine ? (mine.side === 'b' ? '#A3E635' : 'var(--line)') : '#A3E635') }))
         : h('div', { class: 'hint' }, h('span', { text: 'Be the first to cast a vote' }), h('span', { text: '0% — 0%' })),
       h('div', { class: 'opts' }, opt('a'), opt('b')),
       h('div', { class: 'cmeta' }, h('span', {}, svg(14, ICON.bars), fmt(total) + (total === 1 ? ' vote' : ' votes')),
@@ -509,10 +514,15 @@ html,body{overflow-x:hidden}
     const q = (S.q || '').trim().toLowerCase();
     const rows = S.topics.filter((t) => !t.hidden && (!S.chan || t.community === S.chan) && (!q || t.title.toLowerCase().includes(q)))
       .map((t) => ({ t, st: stats(t.id) }));
-    rows.sort((x, y) => S.sort === 'new' ? y.t.createdAt - x.t.createdAt
-      : S.sort === 'top' ? y.st.total - x.st.total
-      : S.sort === 'close' ? (Math.abs(x.st.pa - 50) - Math.abs(y.st.pa - 50)) || (y.st.total - x.st.total)
-      : (y.st.recent * 2 + y.st.total) - (x.st.recent * 2 + x.st.total));
+    const byNew = (x, y) => (y.t.createdAt - x.t.createdAt) || x.t.title.localeCompare(y.t.title);
+    const hot = (r) => r.st.recent * 3 + r.st.list.length * 2 + r.st.total;
+    const sorters = {
+      hot: (x, y) => (hot(y) - hot(x)) || byNew(x, y),
+      new: byNew,
+      top: (x, y) => (y.st.total - x.st.total) || (y.st.list.length - x.st.list.length) || byNew(x, y),
+      close: (x, y) => ((x.st.total ? 0 : 1) - (y.st.total ? 0 : 1)) || (Math.abs(x.st.pa - 50) - Math.abs(y.st.pa - 50)) || (y.st.total - x.st.total) || byNew(x, y)
+    };
+    rows.sort(sorters[S.sort] || sorters.hot);
     return rows;
   }
   function fillFeed(feed) {
@@ -526,8 +536,10 @@ html,body{overflow-x:hidden}
     const visible = S.topics.filter((t) => !t.hidden);
     const voices = new Set(S.pv.map((v) => v.masked)).size;
     const chans = [...new Set(visible.map((t) => t.community || 't/general'))].sort();
-    main.append(h('div', { style: 'margin-top:22px' }, h('span', { class: 'livepill' }, h('span', { class: 'livedot', 'aria-hidden': 'true' }),
-      h('b', { text: fmt(voices) + (voices === 1 ? ' voice' : ' voices') }), ' taking sides across ', h('span', { class: 'ch', text: chans.length + (chans.length === 1 ? ' channel' : ' channels') }))));
+    main.append(h('div', { style: 'margin-top:22px' }, h('span', { class: 'livepill', 'aria-live': 'polite' }, h('span', { class: 'livedot', 'aria-hidden': 'true' }),
+      h('span', {}, S.online ? h('b', { text: fmt(S.online) + ' online' }) : null, S.online ? ' · ' : '',
+        h('b', { text: fmt(voices) + (voices === 1 ? ' voice' : ' voices') }), ' taking sides across ',
+        h('span', { class: 'ch', text: chans.length + (chans.length === 1 ? ' channel' : ' channels') })))));
     main.append(h('div', { class: 'herorow' },
       h('div', {}, h('h2', { class: 'hero' }, 'Pick a side.', h('br'), h('span', { class: 'ul', text: 'Hear the other.' })),
         h('p', { class: 'lede', text: 'Cast your stance to unlock direct, anonymous 1-on-1 conversations with people who voted the exact opposite.' })),
@@ -538,15 +550,16 @@ html,body{overflow-x:hidden}
     const feed = h('div', { class: 'feed' });
     const sorts = h('div', { class: 'seg', role: 'tablist', 'aria-label': 'Sort topics' });
     [['hot', 'Hot'], ['new', 'New'], ['top', 'Most votes'], ['close', 'Closest split']].forEach(([k, l]) => sorts.append(
-      h('button', { class: 'sortbtn', role: 'tab', 'aria-selected': String((S.sort || 'hot') === k), onclick: () => { S.sort = k; render(); } }, k === 'hot' ? svg(14, ICON.flame) : null, l)));
+      h('button', { class: 'sortbtn', role: 'tab', 'aria-selected': String((S.sort || 'hot') === k), onclick: () => { S.sort = k; S.resorted = true; render(); } }, k === 'hot' ? svg(14, ICON.flame) : null, l)));
     const chips = h('div', { class: 'seg', role: 'tablist', 'aria-label': 'Channels' });
     [[null, 'All channels'], ...chans.map((c) => [c, c])].forEach(([k, l]) => chips.append(
-      h('button', { class: 'chanbtn', role: 'tab', 'aria-selected': String((S.chan || null) === k), onclick: () => { S.chan = k; render(); }, text: l })));
+      h('button', { class: 'chanbtn', role: 'tab', 'aria-selected': String((S.chan || null) === k), onclick: () => { S.chan = k; S.resorted = true; render(); }, text: l })));
     const q = h('input', { type: 'search', placeholder: 'Filter topics…', 'aria-label': 'Filter topics', value: S.q || '' });
     q.addEventListener('input', () => { S.q = q.value; fillFeed(feed); });
     main.append(h('div', { class: 'toolbar' }, sorts, h('span', { class: 'sep', 'aria-hidden': 'true' }), h('span', { class: 'grow' }), chips,
       h('label', { class: 'search' }, svg(14, ICON.search), q)));
     fillFeed(feed);
+    if (S.resorted) { feed.classList.add('resorted'); S.resorted = false; }
     main.append(feed);
     main.append(h('footer', { class: 'sitefoot' }, h('span', {}, h('b', { text: 'Speak Onion' }), ' • Anonymous cross-aisle dialogue'),
       S.isAdmin ? h('label', { class: 'toggle' }, h('input', { type: 'checkbox', role: 'switch', checked: S.simPurge || null, onchange: (e) => { S.simPurge = e.target.checked; render(); } }),
@@ -623,6 +636,24 @@ html,body{overflow-x:hidden}
   }
 
   // ---------- writes ----------
+  // ---------- live updates: who's online + instant vote refresh ----------
+  let live = null, liveTimer = null;
+  async function startLive() {
+    if (!sb || live) return;
+    try { if (sb.realtime.setAuth) await sb.realtime.setAuth(); } catch (e) { }
+    const key = (S.user ? S.user.id : 'guest') + ':' + Math.random().toString(36).slice(2, 8);
+    live = sb.channel('feed', { config: { private: true, presence: { key } } });
+    live.on('presence', { event: 'sync' }, () => {
+      const st = live.presenceState();
+      const people = new Set(Object.keys(st).map((k) => k.split(':')[0] === 'guest' ? k : k.split(':')[0]));
+      S.online = people.size;
+      const ae = document.activeElement; if (S.screen === 'home' && !(ae && /INPUT|TEXTAREA/.test(ae.tagName))) render();
+    });
+    live.on('broadcast', { event: 'vote' }, () => { clearTimeout(liveTimer); liveTimer = setTimeout(loadAll, 600); });
+    live.subscribe(async (status) => { if (status === 'SUBSCRIBED') { try { await live.track({ at: Date.now() }); } catch (e) { } } });
+  }
+  function restartLive() { if (live) { const l = live; live = null; sb.removeChannel(l); } startLive(); }
+
   async function submitVote() {
     const t = curTopic();
     if (!S.pick) { S.error = 'Pick a side first.'; return render(); }
@@ -638,6 +669,7 @@ html,body{overflow-x:hidden}
       return render();
     }
     S.tab = S.pick; S.draft = ''; S.pick = null;
+    if (live) live.send({ type: 'broadcast', event: 'vote', payload: {} }).catch(() => {});
     await loadAll(); render();
   }
   async function report(voteId) {
@@ -850,9 +882,9 @@ html,body{overflow-x:hidden}
   if (sb) {
     sb.auth.onAuthStateChange((_e, session) => {
       const was = S.user && S.user.id; S.user = session ? session.user : null;
-      if ((S.user && S.user.id) !== was) { if (S.screen === 'signin' && S.user) S.screen = 'home'; loadAll(); }
+      if ((S.user && S.user.id) !== was) { if (S.screen === 'signin' && S.user) S.screen = 'home'; loadAll(); if (was !== undefined) restartLive(); }
     });
-    sb.auth.getSession().then(({ data }) => { S.user = data.session ? data.session.user : null; loadAll(); });
+    sb.auth.getSession().then(({ data }) => { S.user = data.session ? data.session.user : null; loadAll(); startLive(); });
     setInterval(() => { if (document.visibilityState === 'visible') loadAll(); }, 20000);
   }
 })();
