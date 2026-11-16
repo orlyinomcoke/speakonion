@@ -208,17 +208,18 @@ footer{padding:16px;text-align:center}
     if (S.screen === 'matching' && screen !== 'matching' && screen !== 'chat') stopSeeking();
     Object.assign(S, { screen, error: '' }, extra || {});
     render(); window.scrollTo(0, 0);
+    if (screen === 'admin') loadAdmin();
   }
 
   // ---------- data ----------
   async function loadAll() {
     if (!sb) return;
     const [tq, vq] = await Promise.all([
-      sb.from('topics').select('id,title,community,label_a,label_b,created_at').order('created_at', { ascending: false }),
-      sb.from('public_votes').select('id,topic_id,side,comment,created_at,anon').limit(10000)
+      sb.from('topics').select('id,title,community,label_a,label_b,created_at,hidden').order('created_at', { ascending: false }),
+      sb.from('public_votes').select('id,topic_id,side,comment,created_at,masked').limit(10000)
     ]);
     if (tq.error || vq.error) { S.error = 'Couldn\'t load topics. Check config.js and that schema.sql was run.'; S.loaded = true; return render(); }
-    S.topics = tq.data.map((t) => ({ id: t.id, title: t.title, community: t.community, labelA: t.label_a, labelB: t.label_b, createdAt: Date.parse(t.created_at) }));
+    S.topics = tq.data.map((t) => ({ id: t.id, title: t.title, community: t.community, labelA: t.label_a, labelB: t.label_b, createdAt: Date.parse(t.created_at), hidden: !!t.hidden }));
     S.pv = vq.data.map((v) => ({ ...v, at: Date.parse(v.created_at) }));
     if (S.user) {
       const mq = await sb.from('votes').select('id,topic_id,side').eq('user_id', S.user.id);
@@ -240,11 +241,12 @@ footer{padding:16px;text-align:center}
     $('back').hidden = S.screen === 'home';
     const hr = $('headRight'); hr.replaceChildren();
     if (sb && S.screen === 'home') {
+      if (S.isAdmin) hr.append(h('button', { class: 'pill', style: 'margin-right:6px', onclick: () => go('admin', { adminTab: S.adminTab || 'topics' }), text: 'Admin' }));
       hr.append(S.user
         ? h('button', { class: 'pill', onclick: async () => { await sb.auth.signOut(); }, text: 'Sign out' })
         : h('button', { class: 'pill ink', onclick: () => go('signin'), text: 'Sign in' }));
     }
-    view.replaceChildren(({ home: renderHome, topic: renderTopic, matching: renderMatching, chat: renderChat, rate: renderRate, newTopic: renderNewTopic, signin: renderSignin })[S.screen]());
+    view.replaceChildren(({ home: renderHome, topic: renderTopic, matching: renderMatching, chat: renderChat, rate: renderRate, newTopic: renderNewTopic, signin: renderSignin, admin: renderAdmin })[S.screen]());
   }
 
   function renderSignin() {
@@ -274,8 +276,8 @@ footer{padding:16px;text-align:center}
     [['hot', 'Hot'], ['new', 'New'], ['top', 'Most votes']].forEach(([k, l]) => tabs.append(h('button', { class: 'chip', role: 'tab', 'aria-selected': String(S.sort === k), onclick: () => { S.sort = k; render(); }, text: l })));
     if (S.isAdmin) tabs.append(h('button', { class: 'chip', style: 'margin-left:auto', onclick: () => go('newTopic'), text: '+ New topic' }));
     main.append(tabs);
-    if (!S.topics.length) { main.append(h('div', { class: 'card pad muted', text: S.loaded ? 'No topics yet.' : 'Loading topics…' })); return main; }
-    const rows = S.topics.map((t) => ({ t, st: stats(t.id) }));
+    if (!S.topics.some((t) => !t.hidden)) { main.append(h('div', { class: 'card pad muted', text: S.loaded ? 'No topics yet.' : 'Loading topics…' })); return main; }
+    const rows = S.topics.filter((t) => !t.hidden).map((t) => ({ t, st: stats(t.id) }));
     rows.sort((x, y) => S.sort === 'new' ? y.t.createdAt - x.t.createdAt
       : S.sort === 'top' ? y.st.total - x.st.total
       : (y.st.recent * 2 + y.st.total) - (x.st.recent * 2 + x.st.total));
@@ -330,7 +332,7 @@ footer{padding:16px;text-align:center}
     for (const c of shown) {
       const isMine = mine && mine.id === c.id;
       sec.append(h('div', { class: 'comment' },
-        h('div', { class: 'small muted' }, h('b', { style: 'color:var(--text)', text: isMine ? 'you' : c.anon }), ' ', h('span', { class: 'tag ' + c.side, style: 'padding:2px 8px', text: c.side === 'a' ? t.labelA : t.labelB }), ' · ' + ago(c.at)),
+        h('div', { class: 'small muted' }, h('b', { style: 'color:var(--text)', text: isMine ? 'you' : (c.masked || 'anonymous') }), ' ', h('span', { class: 'tag ' + c.side, style: 'padding:2px 8px', text: c.side === 'a' ? t.labelA : t.labelB }), ' · ' + ago(c.at)),
         h('div', { text: c.comment }),
         h('div', { class: 'acts' },
           !isMine && S.user ? h('button', { class: 'link', disabled: S.reported[c.id] || null, onclick: () => report(c.id), text: S.reported[c.id] ? 'Reported' : 'Report' }) : null,
@@ -358,7 +360,7 @@ footer{padding:16px;text-align:center}
         e.target.disabled = true;
         const { error } = await sb.from('topics').insert({ title, community: 't/' + comm, label_a: la, label_b: lb, created_by: S.user.id });
         if (error) { err.textContent = error.message; e.target.disabled = false; return; }
-        await loadAll(); go('home');
+        await loadAll(); go(S.isAdmin ? 'admin' : 'home', { adminTab: 'topics' });
       }, text: 'Publish' }))));
   }
 
@@ -493,6 +495,72 @@ footer{padding:16px;text-align:center}
       h('div', { style: 'display:flex;gap:8px' }, h('button', { class: 'pill', onclick: () => go('topic'), text: 'Yes' }), h('button', { class: 'pill', onclick: () => go('topic'), text: 'No' }))));
   }
 
+
+  // ---------- admin ----------
+  async function loadAdmin() {
+    if (S.adminTab === 'users') {
+      const { data, error } = await sb.rpc('admin_list_users');
+      S.adminUsers = error ? { error: error.message } : data;
+    } else if (S.adminTab === 'reports') {
+      const { data, error } = await sb.rpc('admin_reports');
+      S.adminReports = error ? { error: error.message } : data;
+    }
+    if (S.screen === 'admin') render();
+  }
+  async function adminAct(fn) { S.adminMsg = ''; const r = await fn(); if (r && r.error) S.adminMsg = r.error.message; await loadAll(); await loadAdmin(); render(); }
+  function renderAdmin() {
+    if (!S.isAdmin) return h('main', {}, h('div', { class: 'card pad', text: 'Admins only.' }));
+    const tab = S.adminTab || 'topics';
+    const tabs = h('div', { class: 'chips', role: 'tablist', 'aria-label': 'Admin sections' });
+    [['topics', 'Topics'], ['users', 'Users'], ['reports', 'Reports']].forEach(([k, l]) => tabs.append(h('button', { class: 'chip', role: 'tab', 'aria-selected': String(tab === k), onclick: () => { S.adminTab = k; S.adminMsg = ''; render(); loadAdmin(); }, text: l })));
+    const main = h('main', {}, h('h1', { style: 'padding:0 4px', text: 'Admin' }), tabs);
+    if (S.adminMsg) main.append(h('div', { class: 'card pad', style: 'color:var(--err)', role: 'alert', text: S.adminMsg }));
+    const box = h('div', { class: 'card', style: 'overflow:hidden' });
+    main.append(box);
+    const rowStyle = 'display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:14px 18px;border-top:1px solid var(--line)';
+    if (tab === 'topics') {
+      box.append(h('div', { class: 'row', style: 'padding:14px 18px' }, h('b', { text: S.topics.length + ' topics' }), h('button', { class: 'pill ink', onclick: () => go('newTopic'), text: '+ Add topic' })));
+      for (const t of S.topics) {
+        const st = stats(t.id), confirming = S.confirmDel === t.id;
+        box.append(h('div', { style: rowStyle },
+          h('div', { style: 'flex:1 1 260px;min-width:0' },
+            h('div', { style: 'font-weight:600', text: t.title }),
+            h('div', { class: 'small muted', text: t.community + ' · ' + t.labelA + ' vs ' + t.labelB + ' · ' + st.total + ' votes' + (t.hidden ? ' · HIDDEN' : '') })),
+          confirming
+            ? h('span', { style: 'display:flex;gap:8px;align-items:center' }, h('span', { class: 'small', style: 'color:var(--err)', text: 'Delete topic and all its votes?' }),
+                h('button', { class: 'pill', style: 'background:var(--err);border-color:var(--err);color:#fff', onclick: () => { S.confirmDel = null; adminAct(() => sb.from('topics').delete().eq('id', t.id)); }, text: 'Delete' }),
+                h('button', { class: 'pill', onclick: () => { S.confirmDel = null; render(); }, text: 'Cancel' }))
+            : h('span', { style: 'display:flex;gap:8px' },
+                h('button', { class: 'pill', onclick: () => adminAct(() => sb.from('topics').update({ hidden: !t.hidden }).eq('id', t.id)), text: t.hidden ? 'Unhide' : 'Hide' }),
+                h('button', { class: 'pill', style: 'color:var(--err)', onclick: () => { S.confirmDel = t.id; render(); }, text: 'Remove' }))));
+      }
+    } else if (tab === 'users') {
+      const u = S.adminUsers;
+      if (!u) box.append(h('div', { class: 'pad muted', text: 'Loading users…' }));
+      else if (u.error) box.append(h('div', { class: 'pad', style: 'color:var(--err)', text: u.error }));
+      else {
+        box.append(h('div', { style: 'padding:14px 18px' }, h('b', { text: u.length + ' users' })));
+        for (const x of u) box.append(h('div', { style: rowStyle },
+          h('div', { style: 'flex:1 1 240px;min-width:0' },
+            h('div', { style: 'font-weight:600;word-break:break-all', text: x.email }),
+            h('div', { class: 'small muted', text: 'Joined ' + new Date(x.created_at).toLocaleDateString() + ' · last sign-in ' + (x.last_sign_in_at ? ago(Date.parse(x.last_sign_in_at)) + ' ago' : 'never') + ' · ' + x.votes + ' votes' + (x.email_confirmed ? '' : ' · not verified') })),
+          x.is_admin ? h('span', { class: 'tag a', text: 'Admin' }) : null,
+          x.id !== S.user.id ? h('button', { class: 'pill', onclick: () => adminAct(() => sb.rpc('admin_set_admin', { target: x.id, make_admin: !x.is_admin })), text: x.is_admin ? 'Remove admin' : 'Make admin' }) : null));
+      }
+    } else {
+      const r = S.adminReports;
+      if (!r) box.append(h('div', { class: 'pad muted', text: 'Loading reports…' }));
+      else if (r.error) box.append(h('div', { class: 'pad', style: 'color:var(--err)', text: r.error }));
+      else if (!r.length) box.append(h('div', { class: 'pad muted', text: 'No reported comments.' }));
+      else for (const x of r) box.append(h('div', { style: rowStyle },
+        h('div', { style: 'flex:1 1 260px;min-width:0' },
+          h('div', { class: 'small muted', text: x.masked + ' on "' + x.topic_title + '" · ' + x.reports + ' report' + (x.reports == 1 ? '' : 's') + (x.hidden ? ' · HIDDEN' : '') }),
+          h('div', { text: x.comment })),
+        h('button', { class: 'pill', onclick: () => adminAct(() => sb.from('votes').update({ hidden: !x.hidden }).eq('id', x.vote_id)), text: x.hidden ? 'Unhide' : 'Hide' })));
+    }
+    return main;
+  }
+
   // ---------- theme ----------
   const SUN = '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
   const MOON = '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D9F99D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
@@ -503,7 +571,7 @@ footer{padding:16px;text-align:center}
 
   // ---------- wiring ----------
   $('home').addEventListener('click', () => go('home'));
-  $('back').addEventListener('click', () => go(['topic', 'newTopic', 'signin'].includes(S.screen) ? 'home' : 'topic'));
+  $('back').addEventListener('click', () => go(S.screen === 'newTopic' && S.isAdmin ? 'admin' : ['topic', 'newTopic', 'signin', 'admin'].includes(S.screen) ? 'home' : 'topic'));
   setInterval(() => { const on = purgeOn(); if (on !== S._purge) { S._purge = on; if (S.screen !== 'chat') render(); else { document.body.classList.toggle('purge-chat', on); $('purgeBar').hidden = !on; } } }, 30000);
   render();
   if (sb) {

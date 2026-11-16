@@ -77,3 +77,9 @@ To see reported comments, run in SQL Editor: `select * from public.report_queue;
 - **Purge Hour uses the visitor's clock** (Manila time). Move the check to the server so it can't be faked.
 - No rate limiting or bans yet, and the post-chat rating isn't saved.
 - Add Terms of Use and a Privacy Policy (Data Privacy Act), and a contact for takedown requests.
+
+## Migration 002 – admin page and masked names
+
+After `schema.sql`, also run `migration-002-admin.sql` once in the SQL Editor. It adds:
+- **Admin page** (button in the top bar for admins): add, hide/unhide and remove topics; list users with their emails; review reported comments.
+- **Masked names on comments**, e.g. `orly@gmail.com` shows as `o***@*.com`. Full emails and user ids never reach other users' browsers.
