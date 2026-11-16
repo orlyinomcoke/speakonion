@@ -470,63 +470,76 @@ footer{padding:16px;text-align:center}
     if (!error) { await loadAll(); render(); }
   }
 
-  // ---------- chat (Supabase Realtime) ----------
-  let lobby = null;
-  function startSeeking() {
-    const t = curTopic(), mine = myVote(t.id);
+  // ---------- chat (matched by the database, private 2-person rooms) ----------
+  let seekTimer = null;
+  async function startSeeking() {
+    const t = curTopic();
+    if (!S.user) { go('signin'); return; }
     go('matching', { matchNote: '' });
-    const since = Date.now();
-    lobby = sb.channel('lobby-' + t.id, { config: { presence: { key: S.user.id } } });
-    lobby.on('presence', { event: 'sync' }, () => tryMatch(t, mine));
-    lobby.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') await lobby.track({ side: mine.side, since, uid: S.user.id });
-      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { S.matchNote = 'Couldn\'t reach the chat server. Try again.'; render(); }
-    });
+    const myTopic = t.id;
+    const tick = async () => {
+      if (S.screen !== 'matching' || S.topicId !== myTopic) return;
+      const { data, error } = await sb.rpc('find_match', { p_topic: myTopic });
+      if (S.screen !== 'matching' || S.topicId !== myTopic) return;
+      if (error) { S.matchNote = 'Couldn\'t reach the chat server: ' + error.message; render(); return; }
+      const m = data && data[0];
+      if (m && m.match_id) { clearInterval(seekTimer); seekTimer = null; openChat(m); }
+    };
+    clearInterval(seekTimer);
+    seekTimer = setInterval(tick, 2500);
+    tick();
   }
-  function stopSeeking() { if (lobby) { const l = lobby; lobby = null; l.untrack().catch(() => {}); sb.removeChannel(l); } }
-  function tryMatch(t, mine) {
-    if (S.screen !== 'matching' || !lobby) return;
-    const state = lobby.presenceState(), people = [];
-    for (const key in state) { const m = state[key][0]; if (m && (m.side === 'a' || m.side === 'b')) people.push({ uid: key, side: m.side, since: m.since || 0 }); }
-    const byTime = (x, y) => x.since - y.since || (x.uid < y.uid ? -1 : 1);
-    const A = people.filter((p) => p.side === 'a').sort(byTime), B = people.filter((p) => p.side === 'b').sort(byTime);
-    const mineList = mine.side === 'a' ? A : B, other = mine.side === 'a' ? B : A;
-    const i = mineList.findIndex((p) => p.uid === S.user.id);
-    if (i < 0 || i >= other.length) return;
-    const partner = other[i];
-    const name = 'chat-' + t.id + '-' + [S.user.id, partner.uid].sort().join('-');
-    stopSeeking();
-    openChat(name, partner);
+  function stopSeeking() {
+    clearInterval(seekTimer); seekTimer = null;
+    if (sb && S.user) sb.rpc('leave_queue').then(() => {}, () => {});
   }
-  function openChat(name, partner) {
+  async function openChat(m) {
     const t = curTopic(), mine = myVote(t.id);
-    const ch = sb.channel(name, { config: { broadcast: { self: false }, presence: { key: S.user.id } } });
-    S.chat = { name, ch, partnerUid: partner.uid, partnerSide: mine.side === 'a' ? 'b' : 'a', ended: false, joined: false,
-      msgs: [{ sys: true, text: 'Connected. Share one reason for your pick, then ask what made them pick the other side.' }] };
+    try { if (sb.realtime.setAuth) await sb.realtime.setAuth(); } catch (e) { }
+    const ch = sb.channel('match:' + m.match_id, { config: { private: true, broadcast: { self: false }, presence: { key: S.user.id } } });
+    S.chat = { id: m.match_id, ch, partnerName: m.partner_masked || 'anonymous', partnerSide: m.partner_side, mySide: mine.side,
+      ended: false, joined: false, partnerHere: false,
+      msgs: [{ sys: true, text: 'Matched! Waiting for them to connect…' }] };
+    const c = S.chat;
+    const end = (text) => { if (S.chat !== c || c.ended) return; c.ended = true; c.msgs.push({ sys: true, text }); renderMsgs(); };
     ch.on('broadcast', { event: 'msg' }, ({ payload }) => {
-      if (!S.chat || S.chat.ch !== ch) return;
+      if (S.chat !== c) return;
       const text = payload && typeof payload.text === 'string' ? payload.text.slice(0, 300) : '';
       if (!text) return;
       const bad = check(text, true);
-      S.chat.msgs.push(bad ? { sys: true, text: 'A message was blocked: ' + bad } : { me: false, text });
+      c.msgs.push(bad ? { sys: true, text: 'A message was blocked: ' + bad } : { me: false, text });
       renderMsgs();
     });
-    ch.on('presence', { event: 'leave' }, ({ key }) => {
-      if (S.chat && S.chat.ch === ch && key === partner.uid && !S.chat.ended) { S.chat.ended = true; S.chat.msgs.push({ sys: true, text: 'The other person left the chat.' }); renderMsgs(); }
+    ch.on('broadcast', { event: 'bye' }, () => end('The other person ended the chat.'));
+    ch.on('presence', { event: 'join' }, ({ key }) => {
+      if (S.chat !== c || key === S.user.id || c.partnerHere) return;
+      c.partnerHere = true;
+      c.msgs.push({ sys: true, text: 'Connected. Share one reason for your pick, then ask what made them pick the other side.' });
+      renderMsgs();
     });
+    ch.on('presence', { event: 'leave' }, ({ key }) => { if (key !== S.user.id && c.partnerHere) end('The other person left the chat.'); });
     ch.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') { S.chat && (S.chat.joined = true); await ch.track({ side: mine.side }); }
+      if (S.chat !== c) return;
+      if (status === 'SUBSCRIBED') { c.joined = true; await ch.track({ side: mine.side }); }
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') end('Couldn\'t open the chat room. Go back and try again.');
     });
+    setTimeout(() => { if (S.chat === c && !c.partnerHere && !c.ended) end('They didn\'t connect. Go back and try again.'); }, 30000);
     go('chat');
   }
-  function leaveChat() { if (!S.chat) return; const ch = S.chat.ch; S.chat = null; ch.untrack().catch(() => {}); sb.removeChannel(ch); }
+  function leaveChat() {
+    if (!S.chat) return;
+    const c = S.chat; S.chat = null;
+    if (!c.ended && c.joined) c.ch.send({ type: 'broadcast', event: 'bye', payload: {} }).catch(() => {});
+    setTimeout(() => { c.ch.untrack().catch(() => {}); sb.removeChannel(c.ch); }, 300);
+    sb.rpc('end_match', { p_match: c.id }).then(() => {}, () => {});
+  }
 
   function renderMatching() {
     const t = curTopic(), mine = myVote(t.id), other = mine.side === 'a' ? t.labelB : t.labelA;
     return h('main', {}, h('div', { class: 'center' },
       S.matchNote ? h('b', { text: S.matchNote }) : h('div', { class: 'spinner', 'aria-hidden': 'true' }),
       h('b', { class: 'big', text: 'Finding someone who picked ' + other + '…' }),
-      h('span', { class: 'small muted', text: 'You both stay anonymous. They need to tap "Talk to the other side" on this topic too.' }),
+      h('span', { class: 'small muted', text: 'You both stay anonymous. Someone from the other side needs to tap "Talk to …" on this topic too. Keep this screen open.' }),
       h('button', { class: 'pill', onclick: () => go('topic'), text: 'Cancel' })));
   }
   function renderMsgs() {
@@ -538,13 +551,14 @@ footer{padding:16px;text-align:center}
   function renderChat() {
     const t = curTopic(), c = S.chat;
     const otherLabel = c && c.partnerSide === 'a' ? t.labelA : t.labelB;
-    const myLabel = c && c.partnerSide === 'a' ? t.labelB : t.labelA;
+    const myLabel = c && c.mySide === 'a' ? t.labelA : t.labelB;
+    const sideCls = (side) => side === 'a' ? 'pill sideA' : 'pill sideB';
     const inp = h('input', { type: 'text', id: 'msg', maxlength: '300', placeholder: 'Say something respectful…', autocomplete: 'off' });
     const err = h('div', { class: 'err', role: 'alert' });
     const send = async () => {
       const text = inp.value.trim(); if (!text || !S.chat || S.chat.ended) return;
       const bad = check(text, true); if (bad) { err.textContent = bad; return; }
-      if (!S.chat.joined) { err.textContent = 'Still connecting…'; return; }
+      if (!S.chat.joined || !S.chat.partnerHere) { err.textContent = 'Waiting for them to connect…'; return; }
       err.textContent = '';
       const r = await S.chat.ch.send({ type: 'broadcast', event: 'msg', payload: { text } });
       if (r !== 'ok') { err.textContent = 'Message not sent. Try again.'; return; }
@@ -553,14 +567,14 @@ footer{padding:16px;text-align:center}
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
     const node = h('section', { class: 'chat' },
       h('div', { class: 'head' },
-        h('div', { style: 'flex:1' }, h('b', { style: 'font:700 18px var(--display)', text: 'Anonymous' }), h('div', { class: 'small muted' }, 'Picked ', h('b', { text: otherLabel }), purgeOn() ? ' · Purge Hour' : '')),
+        h('div', { style: 'flex:1' }, h('b', { style: 'font:700 18px var(--display)', text: c ? c.partnerName : 'Anonymous' }), h('div', { class: 'small muted' }, 'Picked ', h('b', { text: otherLabel }), purgeOn() ? ' · Purge Hour' : '')),
         h('button', { class: 'pill ink', onclick: () => go('rate'), text: 'End' })),
       h('div', { class: 'card ctx' },
         h('span', { class: 'small muted', style: 'font-weight:600;letter-spacing:.06em;text-transform:uppercase', text: 'The topic' }),
         h('span', { style: 'font:700 16px/1.3 var(--display)', text: t.title }),
         h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' },
-          h('span', { class: 'pill sideA', style: 'min-height:28px;padding:0 10px;font-size:12px', text: 'You · ' + myLabel }),
-          h('span', { class: 'pill sideB', style: 'min-height:28px;padding:0 10px;font-size:12px', text: 'Them · ' + otherLabel }))),
+          h('span', { class: sideCls(c && c.mySide), style: 'min-height:28px;padding:0 10px;font-size:12px', text: 'You · ' + myLabel }),
+          h('span', { class: sideCls(c && c.partnerSide), style: 'min-height:28px;padding:0 10px;font-size:12px', text: (c ? c.partnerName : 'Them') + ' · ' + otherLabel }))),
       h('div', { class: 'msgs', id: 'msgs', 'aria-live': 'polite' }),
       err,
       h('div', { class: 'compose' }, h('label', { for: 'msg', class: 'sr', text: 'Message' }), inp,

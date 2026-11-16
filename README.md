@@ -83,3 +83,11 @@ To see reported comments, run in SQL Editor: `select * from public.report_queue;
 After `schema.sql`, also run `migration-002-admin.sql` once in the SQL Editor. It adds:
 - **Admin page** (button in the top bar for admins): add, hide/unhide and remove topics; list users with their emails; review reported comments.
 - **Masked names on comments**, e.g. `orly@gmail.com` shows as `o***@*.com`. Full emails and user ids never reach other users' browsers.
+
+## Migration 004 – reliable matching + private chat rooms
+
+Run `migration-004-chat.sql` once in the SQL Editor, then in Supabase go to
+**Realtime → Settings** and turn **off "Allow public access"**.
+- Matching now happens in the database, so both people are always paired together.
+- Each chat room (`match:<id>`) only lets in the two matched people.
+- The chat shows the other person's masked name (e.g. `o***@*.com`).
