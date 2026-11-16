@@ -485,6 +485,7 @@ body.theme-dark .take{background:var(--soft)}
   function go(screen, extra) {
     if (S.screen === 'chat' && screen !== 'chat') leaveChat();
     if (S.screen === 'matching' && screen !== 'matching' && screen !== 'chat') stopSeeking();
+    if (screen === 'topic' && (S.screen !== 'topic' || (extra && extra.topicId && extra.topicId !== S.topicId))) S.orderKey = null;
     Object.assign(S, { screen, error: '' }, extra || {});
     render(); window.scrollTo(0, 0);
     syncUrl();
@@ -604,7 +605,6 @@ body.theme-dark .take{background:var(--soft)}
         : h('div', { class: 'hint' }, h('span', { text: 'Be the first to cast a vote' }), h('span', { text: '0% — 0%' })),
       h('div', { class: 'opts' }, opt('a'), opt('b')),
       h('div', { class: 'cmeta' }, h('span', {}, svg(14, ICON.bars), fmt(total) + (total === 1 ? ' vote' : ' votes')),
-        h('span', {}, svg(14, ICON.chat), fmt(st.list.length) + (st.list.length === 1 ? ' comment' : ' comments')),
         mine ? h('span', { class: 'r', text: 'Votes are final' }) : null),
       mine
         ? h('button', { class: 'enter', onclick: () => { S.topicId = t.id; startSeeking(); } }, h('span', { class: 'l', text: 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side' }), h('span', { class: 'r', text: 'Enter room →' }))
@@ -739,7 +739,15 @@ body.theme-dark .take{background:var(--soft)}
     const ca = st.list.filter((c) => c.side === 'a'), cb = st.list.filter((c) => c.side === 'b');
     const filt = S.tab === 'a' || S.tab === 'b' ? S.tab : 'all';
     let shown = filt === 'a' ? ca : filt === 'b' ? cb : st.list.slice();
-    shown = shown.slice().sort(S.takeSort === 'new' ? (x, y) => y.at - x.at : (x, y) => ((y.fair || 0) - (x.fair || 0)) || (y.at - x.at));
+    // Sort once per view (topic + filter + sort). Liking doesn't reshuffle the list under your finger;
+    // new takes appear at the top, and the order refreshes when you change the sort/filter or reopen the topic.
+    const orderKey = t.id + '|' + filt + '|' + (S.takeSort || 'top');
+    if (S.orderKey !== orderKey) {
+      S.orderKey = orderKey;
+      S.orderIds = shown.slice().sort(S.takeSort === 'new' ? (x, y) => y.at - x.at : (x, y) => ((y.fair || 0) - (x.fair || 0)) || (y.at - x.at)).map((c) => c.id);
+    }
+    const pos = new Map(S.orderIds.map((id, i) => [id, i]));
+    shown = shown.slice().sort((x, y) => (pos.has(x.id) ? pos.get(x.id) : -1 - (x.at / 1e13)) - (pos.has(y.id) ? pos.get(y.id) : -1 - (y.at / 1e13)));
     const chip = (key, text, cls) => h('button', { class: 'tchip ' + cls, role: 'tab', 'aria-selected': String(filt === key), onclick: () => { S.tab = key; render(); }, text });
     const right = h('section', { class: 'card takes' },
       h('div', { class: 'takeshead' },
