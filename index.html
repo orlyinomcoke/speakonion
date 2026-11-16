@@ -6,6 +6,14 @@
 <meta name="description" content="Pick a side. Hear the other. Vote on topics and chat anonymously with people who disagree.">
 <meta name="theme-color" content="#F6F3EE">
 <title>Speak Onion</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta property="og:title" content="Speak Onion">
+<meta property="og:description" content="Pick a side. Hear the other. Vote on topics and chat anonymously with people who disagree.">
+<meta property="og:image" content="/icon-512.png">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap">
 <style>
@@ -121,7 +129,7 @@ footer{padding:16px;text-align:center}
   <div id="view"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
+<script src="/config.js"></script>
 <script>
 (() => {
   const CFG = window.SPEAK_ONION_CONFIG || {};
@@ -203,11 +211,70 @@ footer{padding:16px;text-align:center}
       h('span', { class: 'bb', style: 'flex:' + Math.max(st.pb, 1) + ' 1 0' }, h('span', { style: 'all:unset', text: st.pb + '%' }), h('span', { style: 'all:unset;overflow:hidden;text-overflow:ellipsis', text: t.labelB })));
   }
 
+  // ---------- routing (shareable URLs) ----------
+  function slugify(t) {
+    return String(t).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/['’]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60).replace(/-+$/, '') || 'topic';
+  }
+  function buildSlugs() {
+    const used = {};
+    S.slugById = {}; S.idBySlug = {};
+    S.topics.slice().sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1)).forEach((t) => {
+      const base = slugify(t.title); let slug = base, n = 2;
+      while (used[slug]) slug = base + '-' + n++;
+      used[slug] = true; S.slugById[t.id] = slug; S.idBySlug[slug] = t.id;
+    });
+  }
+  function pathFor() {
+    if (['topic', 'matching', 'chat', 'rate'].includes(S.screen) && S.topicId && S.slugById && S.slugById[S.topicId]) return '/' + S.slugById[S.topicId];
+    if (S.screen === 'admin') return '/admin';
+    if (S.screen === 'newTopic') return '/admin/new-topic';
+    if (S.screen === 'signin') return '/signin';
+    return '/';
+  }
+  let routing = false;
+  function syncUrl(replace) {
+    if (routing) return;
+    const p = pathFor();
+    if (location.pathname !== p) {
+      try { history[replace ? 'replaceState' : 'pushState']({}, '', p + (S.screen === 'home' ? '' : '')); } catch (e) { }
+    }
+    const t = curTopic();
+    document.title = ['topic', 'matching', 'chat', 'rate'].includes(S.screen) && t ? t.title + ' · Speak Onion' : 'Speak Onion';
+  }
+  function routeFromUrl() {
+    const p = decodeURIComponent(location.pathname).replace(/\/+$/, '') || '/';
+    routing = true;
+    if (p === '/') go('home');
+    else if (p === '/signin') go(S.user ? 'home' : 'signin');
+    else if (p === '/admin') go('admin', { adminTab: S.adminTab || 'topics' });
+    else if (p === '/admin/new-topic') go('newTopic');
+    else {
+      const id = S.idBySlug && S.idBySlug[p.slice(1)];
+      if (id) { const mine = myVote(id); go('topic', { topicId: id, pick: null, draft: '', tab: mine ? mine.side : 'a' }); }
+      else go('notFound');
+    }
+    routing = false;
+    syncUrl(true);
+  }
+  window.addEventListener('popstate', () => { if (S.loaded) routeFromUrl(); });
+
+  async function shareTopic(t) {
+    const url = location.origin + '/' + S.slugById[t.id];
+    try {
+      if (navigator.share) { await navigator.share({ title: t.title, text: t.title + ' Pick a side on Speak Onion.', url }); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(url); S.shareMsg = 'Link copied!'; }
+    catch (e) { S.shareMsg = url; }
+    render(); setTimeout(() => { S.shareMsg = ''; if (S.screen === 'topic') render(); }, 2500);
+  }
+
   function go(screen, extra) {
     if (S.screen === 'chat' && screen !== 'chat') leaveChat();
     if (S.screen === 'matching' && screen !== 'matching' && screen !== 'chat') stopSeeking();
     Object.assign(S, { screen, error: '' }, extra || {});
     render(); window.scrollTo(0, 0);
+    syncUrl();
     if (screen === 'admin') loadAdmin();
   }
 
@@ -221,6 +288,7 @@ footer{padding:16px;text-align:center}
     if (tq.error || vq.error) { S.error = 'Couldn\'t load topics. Check config.js and that schema.sql was run.'; S.loaded = true; return render(); }
     S.topics = tq.data.map((t) => ({ id: t.id, title: t.title, community: t.community, labelA: t.label_a, labelB: t.label_b, createdAt: Date.parse(t.created_at), hidden: !!t.hidden }));
     S.pv = vq.data.map((v) => ({ ...v, at: Date.parse(v.created_at) }));
+    buildSlugs();
     if (S.user) {
       const mq = await sb.from('votes').select('id,topic_id,side').eq('user_id', S.user.id);
       S.mine = {}; (mq.data || []).forEach((v) => { S.mine[v.topic_id] = v; });
@@ -229,7 +297,9 @@ footer{padding:16px;text-align:center}
       const pq = await sb.from('profiles').select('is_admin').eq('id', S.user.id).maybeSingle();
       S.isAdmin = !!(pq.data && pq.data.is_admin);
     } else { S.mine = {}; S.reported = {}; S.isAdmin = false; }
+    const first = !S.loaded;
     S.loaded = true;
+    if (first) { routeFromUrl(); return; }
     const typing = document.activeElement && (document.activeElement.id === 'why' || document.activeElement.tagName === 'INPUT');
     if (S.screen !== 'chat' && S.screen !== 'matching' && !typing) render();
   }
@@ -246,7 +316,13 @@ footer{padding:16px;text-align:center}
         ? h('button', { class: 'pill', onclick: async () => { await sb.auth.signOut(); }, text: 'Sign out' })
         : h('button', { class: 'pill ink', onclick: () => go('signin'), text: 'Sign in' }));
     }
-    view.replaceChildren(({ home: renderHome, topic: renderTopic, matching: renderMatching, chat: renderChat, rate: renderRate, newTopic: renderNewTopic, signin: renderSignin, admin: renderAdmin })[S.screen]());
+    view.replaceChildren(({ home: renderHome, topic: renderTopic, matching: renderMatching, chat: renderChat, rate: renderRate, newTopic: renderNewTopic, signin: renderSignin, admin: renderAdmin, notFound: renderNotFound })[S.screen]());
+  }
+
+  function renderNotFound() {
+    return h('main', {}, h('div', { class: 'center' }, h('b', { class: 'big', text: 'Topic not found' }),
+      h('span', { class: 'muted', text: 'It may have been removed, or the link is wrong.' }),
+      h('button', { class: 'pill ink', onclick: () => go('home'), text: 'See all topics' })));
   }
 
   function renderSignin() {
@@ -304,7 +380,10 @@ footer{padding:16px;text-align:center}
     const st = stats(t.id), mine = myVote(t.id);
     const box = h('article', { class: 'card pad' },
       h('div', { class: 'toprow' }, h('span', { text: (t.community || 't/general') + ' · ' + fmt(st.total) + ' votes' })),
-      h('h1', { text: t.title }));
+      h('h1', { text: t.title }),
+      h('div', { style: 'display:flex;align-items:center;gap:10px' },
+        h('button', { class: 'pill', onclick: () => shareTopic(t) }, svg(16, '<path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'), 'Share'),
+        S.shareMsg ? h('span', { class: 'small muted', role: 'status', style: 'word-break:break-all', text: S.shareMsg }) : null));
     if (!S.user) {
       box.append(h('div', { class: 'notice' }, 'Sign in with your email to vote and chat. ', h('button', { class: 'pill ink', style: 'margin-top:8px', onclick: () => go('signin'), text: 'Sign in' })));
     } else if (!mine) {
@@ -571,7 +650,7 @@ footer{padding:16px;text-align:center}
 
   // ---------- wiring ----------
   $('home').addEventListener('click', () => go('home'));
-  $('back').addEventListener('click', () => go(S.screen === 'newTopic' && S.isAdmin ? 'admin' : ['topic', 'newTopic', 'signin', 'admin'].includes(S.screen) ? 'home' : 'topic'));
+  $('back').addEventListener('click', () => (S.screen === 'notFound') ? go('home') : go(S.screen === 'newTopic' && S.isAdmin ? 'admin' : ['topic', 'newTopic', 'signin', 'admin'].includes(S.screen) ? 'home' : 'topic'));
   setInterval(() => { const on = purgeOn(); if (on !== S._purge) { S._purge = on; if (S.screen !== 'chat') render(); else { document.body.classList.toggle('purge-chat', on); $('purgeBar').hidden = !on; } } }, 30000);
   render();
   if (sb) {

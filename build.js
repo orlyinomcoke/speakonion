@@ -4,5 +4,5 @@ const path = require('path');
 const out = path.join(__dirname, 'dist');
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
-for (const f of ['index.html', 'config.js']) fs.copyFileSync(path.join(__dirname, f), path.join(out, f));
+for (const f of ['index.html', 'config.js', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-512.png', 'site.webmanifest', '.htaccess']) fs.copyFileSync(path.join(__dirname, f), path.join(out, f));
 console.log('Built static site into dist/');
