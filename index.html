@@ -61,7 +61,7 @@ h1{font-size:26px}
 .tag.a{background:var(--tagA);color:var(--tagAText)}
 .tag.b{background:var(--tagB);color:var(--tagBText)}
 .blocks{display:flex;gap:6px;height:46px}
-.blocks span{min-width:84px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 12px;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden}
+.blocks span{min-width:56px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 12px;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden}
 .blocks .ba{background:var(--a);color:var(--aText)}
 .blocks .bb{background:var(--b);color:var(--bText)}
 .meta{display:flex;gap:16px;font-size:12px;font-weight:500;color:var(--muted);padding-bottom:14px}
@@ -207,8 +207,8 @@ footer{padding:16px;text-align:center}
 
   function splitBar(t, st) {
     return h('div', { class: 'blocks', role: 'img', 'aria-label': t.labelA + ' ' + st.pa + ' percent, ' + t.labelB + ' ' + st.pb + ' percent' },
-      h('span', { class: 'ba', style: 'flex:' + Math.max(st.pa, 1) + ' 1 0' }, h('span', { style: 'all:unset;overflow:hidden;text-overflow:ellipsis', text: t.labelA }), h('span', { style: 'all:unset', text: st.pa + '%' })),
-      h('span', { class: 'bb', style: 'flex:' + Math.max(st.pb, 1) + ' 1 0' }, h('span', { style: 'all:unset', text: st.pb + '%' }), h('span', { style: 'all:unset;overflow:hidden;text-overflow:ellipsis', text: t.labelB })));
+      h('span', { class: 'ba', style: 'flex:' + Math.max(st.pa, 1) + ' 1 0' + (st.pa < 25 ? ';justify-content:center' : '') }, st.pa < 25 ? null : h('span', { style: 'all:unset;overflow:hidden;text-overflow:ellipsis', text: t.labelA }), h('span', { style: 'all:unset', text: st.pa + '%' })),
+      h('span', { class: 'bb', style: 'flex:' + Math.max(st.pb, 1) + ' 1 0' + (st.pb < 25 ? ';justify-content:center' : '') }, h('span', { style: 'all:unset', text: st.pb + '%' }), st.pb < 25 ? null : h('span', { style: 'all:unset;overflow:hidden;text-overflow:ellipsis', text: t.labelB })));
   }
 
   // ---------- routing (shareable URLs) ----------
@@ -366,7 +366,7 @@ footer{padding:16px;text-align:center}
             mine ? h('span', { class: 'tag a', text: 'You picked ' + (mine.side === 'a' ? t.labelA : t.labelB) }) : h('span', { class: 'tag b', text: 'Vote now' })),
           h('span', { class: 'title', text: t.title }),
           splitBar(t, st),
-          h('span', { class: 'meta' }, h('span', { text: fmt(st.total) + ' votes' }), h('span', { text: fmt(st.list.length) + ' comments' }))),
+          h('span', { class: 'meta' }, h('span', { text: fmt(st.total) + (st.total === 1 ? ' vote' : ' votes') }), h('span', { text: fmt(st.list.length) + (st.list.length === 1 ? ' comment' : ' comments') }))),
         mine ? h('div', { class: 'cardfoot' },
           h('button', { class: 'pill ink wide', onclick: () => { S.topicId = t.id; startSeeking(); } }, chatIcon(), 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side')) : null));
     }
@@ -379,7 +379,7 @@ footer{padding:16px;text-align:center}
     const t = curTopic(); if (!t) return h('main', {}, h('div', { class: 'card pad', text: 'Topic not found.' }));
     const st = stats(t.id), mine = myVote(t.id);
     const box = h('article', { class: 'card pad' },
-      h('div', { class: 'toprow' }, h('span', { text: (t.community || 't/general') + ' · ' + fmt(st.total) + ' votes' })),
+      h('div', { class: 'toprow' }, h('span', { text: (t.community || 't/general') + ' · ' + fmt(st.total) + (st.total === 1 ? ' vote' : ' votes') })),
       h('h1', { text: t.title }),
       h('div', { style: 'display:flex;align-items:center;gap:10px' },
         h('button', { class: 'pill', onclick: () => shareTopic(t) }, svg(16, '<path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'), 'Share'),
