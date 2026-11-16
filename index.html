@@ -214,6 +214,7 @@ html,body{overflow-x:hidden}
   .search{flex:1 1 100%}
 }
 @media (max-width:400px){ .beta{display:none} }
+@media (max-width:480px){ header:has(#back:not([hidden])) .brand span{display:none} }
 
 /* ---- Typography: Plus Jakarta Sans for display, Inter for UI ---- */
 html,body{font-family:Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"cv11" 1}
@@ -237,6 +238,64 @@ h1,.ctitle,.topic .title{font-weight:700}
 .enter,.locked{min-height:54px;margin-top:4px}
 .enter{padding:0 20px}
 @media (max-width:760px){ .feed > .card{padding:22px 20px 20px;gap:16px} }
+
+/* ---- topic page ---- */
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:22px 0 4px}
+.crumb{border:0;background:none;padding:0;color:var(--muted);font-size:13px;min-height:28px}
+.crumb.ch{color:var(--a);font-weight:600}
+.crumbs .cur{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60ch}
+.topicLayout{gap:22px;margin-top:10px}
+.tleft{display:flex;flex-direction:column;gap:18px}
+.tcard{padding:28px;display:flex;flex-direction:column;gap:18px;border:1px solid var(--line)}
+.thead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.tmeta{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.chchip{background:var(--tagA);color:var(--tagAText);font-weight:600;padding:4px 10px;border-radius:8px}
+.pill.sm{min-height:34px;padding:0 12px;font-size:13px}
+.ttitle{font-size:32px;line-height:1.15;margin:4px 0 2px}
+.bigopts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bigopt{display:flex;flex-direction:column;justify-content:space-between;gap:16px;min-height:88px;padding:16px;border-radius:16px;border:0;text-align:left}
+.bigopt.a{background:#7C3AED;color:#fff}
+.bigopt.b{background:#D9F99D;color:#1A2E05}
+.bigopt.sel{box-shadow:0 0 0 2px var(--card),0 0 0 4.5px var(--text)}
+.bigopt.dim{opacity:.45}
+.bigopt .row1,.bigopt .row2{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bigopt .nm{font:700 19px var(--display);letter-spacing:-.02em}
+.bigopt .row2{font-size:12px;opacity:.9}
+.bigopt .pct{font-weight:700;font-size:11px;padding:3px 7px;border-radius:6px;background:rgba(0,0,0,.18)}
+.bigopt.b .pct{background:rgba(26,46,5,.12)}
+.bigopt .yp{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.22)}
+.bigopt.b .yp{background:rgba(26,46,5,.14)}
+hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
+.caption{margin:-6px 0 0;text-align:center;font-size:12px;color:var(--muted)}
+.caption b{color:var(--text)}
+.howcard{display:flex;gap:14px;padding:22px 24px;border:1px solid var(--line);box-shadow:none;background:transparent}
+.howcard p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.6}
+.howcard p b{color:var(--text)}
+.howicon{flex:none;width:34px;height:34px;border-radius:10px;background:var(--tagA);color:var(--tagAText);display:flex;align-items:center;justify-content:center}
+.takes{padding:24px;border:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+.takeshead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.tchip{min-height:34px;padding:0 14px;border-radius:999px;border:0;font-weight:600;font-size:13px;background:var(--soft);color:var(--text)}
+.tchip.a{background:#EDE9FE;color:#5B21B6}
+.tchip.b{background:#ECFCCB;color:#3F6212}
+.tchip[aria-selected="true"]{background:var(--ink);color:var(--inkText)}
+.seg{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tsort{min-height:32px;padding:0 12px;border-radius:8px;border:0;background:none;color:var(--muted);font-size:13px;font-weight:600}
+.tsort[aria-selected="true"]{background:var(--soft);color:var(--text)}
+.take{border:1px solid var(--line);border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+body.theme-dark .take{background:var(--soft)}
+.takehead{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px}
+.takeacts{margin-left:auto;display:flex;gap:12px}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 11px Inter,sans-serif}
+.av.a{background:#7C3AED;color:#fff}
+.av.b{background:#D9F99D;color:#1A2E05}
+.taketext{margin:0 0 0 38px;font-size:15px;line-height:1.6}
+.takefoot{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-left:38px}
+.fair{min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:13px;font-weight:600}
+.fair.on{background:#EDE9FE;border-color:#EDE9FE;color:#5B21B6}
+.link.debate{font-size:13px;color:var(--muted)}
+@media (min-width:1000px){ .topicLayout{grid-template-columns:minmax(0,5fr) minmax(0,6fr)} .topicLayout > .tleft{position:sticky;top:90px} .topicLayout > .card:first-child{position:static} }
+@media (max-width:760px){ .tcard,.takes{padding:20px} .ttitle{font-size:26px} .taketext,.takefoot{margin-left:0} .crumbs .cur{max-width:100%;white-space:normal} .bigopt .yp{font-size:0;padding:4px 6px;gap:0} .bigopt .row2{white-space:nowrap} .topicLayout,.tleft{min-width:0;width:100%} }
+.bigopt .yp{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -404,7 +463,7 @@ h1,.ctitle,.topic .title{font-weight:700}
     else if (p === '/admin/new-topic') go('newTopic');
     else {
       const id = S.idBySlug && S.idBySlug[p.slice(1)];
-      if (id) { const mine = myVote(id); go('topic', { topicId: id, pick: null, draft: '', tab: mine ? mine.side : 'a' }); }
+      if (id) { const mine = myVote(id); go('topic', { topicId: id, pick: null, draft: '', tab: 'all' }); }
       else go('notFound');
     }
     routing = false;
@@ -436,7 +495,7 @@ h1,.ctitle,.topic .title{font-weight:700}
     if (!sb) return;
     const [tq, vq] = await Promise.all([
       sb.from('topics').select('id,title,community,label_a,label_b,created_at,hidden').order('created_at', { ascending: false }),
-      sb.from('public_votes').select('id,topic_id,side,comment,created_at,masked').limit(10000)
+      sb.from('public_votes').select('*').limit(10000)
     ]);
     if (tq.error || vq.error) { S.error = 'Couldn\'t load topics. Check config.js and that schema.sql was run.'; S.loaded = true; return render(); }
     S.topics = tq.data.map((t) => ({ id: t.id, title: t.title, community: t.community, labelA: t.label_a, labelB: t.label_b, createdAt: Date.parse(t.created_at), hidden: !!t.hidden }));
@@ -445,6 +504,8 @@ h1,.ctitle,.topic .title{font-weight:700}
     if (S.user) {
       const mq = await sb.from('votes').select('id,topic_id,side').eq('user_id', S.user.id);
       S.mine = {}; (mq.data || []).forEach((v) => { S.mine[v.topic_id] = v; });
+      const fq = await sb.from('fair_points').select('vote_id').eq('user_id', S.user.id);
+      S.myFair = {}; (fq.data || []).forEach((f) => { S.myFair[f.vote_id] = true; });
       const rq = await sb.from('reports').select('vote_id').eq('reporter', S.user.id);
       S.reported = {}; (rq.data || []).forEach((r) => { S.reported[r.vote_id] = true; });
       const pq = await sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle();
@@ -529,7 +590,7 @@ h1,.ctitle,.topic .title{font-weight:700}
 
   function topicCard(t, st) {
     const mine = myVote(t.id);
-    const open = (pick) => go('topic', { topicId: t.id, pick: pick || null, draft: '', tab: mine ? mine.side : (pick || 'a') });
+    const open = (pick) => go('topic', { topicId: t.id, pick: pick || null, draft: '', tab: 'all' });
     const opt = (side) => sideOpt(t, st, side, mine, { pickHint: !mine, onclick: () => open(mine ? null : side),
       attrs: { 'aria-label': mine ? (side === 'a' ? t.labelA : t.labelB) + ' ' + (side === 'a' ? st.pa : st.pb) + ' percent' + (mine.side === side ? ', your pick' : '') : 'Pick ' + (side === 'a' ? t.labelA : t.labelB) } });
     const total = st.total;
@@ -569,6 +630,12 @@ h1,.ctitle,.topic .title{font-weight:700}
       : [h('div', { class: 'card pad muted', style: 'grid-column:1/-1', text: S.loaded ? 'No topics match.' : 'Loading topics…' })]));
   }
 
+  function siteFooter() {
+    return h('footer', { class: 'sitefoot' }, h('span', {}, h('b', { text: 'Speak Onion' }), ' • Anonymous cross-aisle dialogue'),
+      S.isAdmin ? h('label', { class: 'toggle' }, h('input', { type: 'checkbox', role: 'switch', checked: S.simPurge || null, onchange: (e) => { S.simPurge = e.target.checked; render(); } }),
+        h('span', {}, h('b', { text: 'Simulate Purge Hour' }), h('span', { class: 'muted', text: ' (admin test switch, this browser only)' }))) : null);
+  }
+
   function renderHome() {
     const main = h('main');
     const visible = S.topics.filter((t) => !t.hidden);
@@ -599,58 +666,108 @@ h1,.ctitle,.topic .title{font-weight:700}
     fillFeed(feed);
     if (S.resorted) { feed.classList.add('resorted'); S.resorted = false; }
     main.append(feed);
-    main.append(h('footer', { class: 'sitefoot' }, h('span', {}, h('b', { text: 'Speak Onion' }), ' • Anonymous cross-aisle dialogue'),
-      S.isAdmin ? h('label', { class: 'toggle' }, h('input', { type: 'checkbox', role: 'switch', checked: S.simPurge || null, onchange: (e) => { S.simPurge = e.target.checked; render(); } }),
-        h('span', {}, h('b', { text: 'Simulate Purge Hour' }), h('span', { class: 'muted', text: ' (admin test switch, this browser only)' }))) : null));
+    main.append(siteFooter());
     return main;
   }
 
-  function renderTopic() {
-    const t = curTopic(); if (!t) return h('main', {}, h('div', { class: 'card pad', text: 'Topic not found.' }));
-    const st = stats(t.id), mine = myVote(t.id);
-    const box = h('article', { class: 'card pad' },
-      h('div', { class: 'toprow' }, h('span', { text: (t.community || 't/general') + ' · ' + fmt(st.total) + (st.total === 1 ? ' vote' : ' votes') })),
-      h('h1', { text: t.title }),
-      h('div', { style: 'display:flex;align-items:center;gap:10px' },
-        h('button', { class: 'pill', onclick: () => shareTopic(t) }, svg(16, '<path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'), 'Share'),
-        S.shareMsg ? h('span', { class: 'small muted', role: 'status', style: 'word-break:break-all', text: S.shareMsg }) : null));
-    if (!S.user) {
-      box.append(h('div', { class: 'notice' }, 'Sign in with your email to vote and chat. ', h('button', { class: 'pill ink', style: 'margin-top:8px', onclick: () => go('signin'), text: 'Sign in' })));
-    } else if (!mine) {
-      const pickBtn = (side) => sideOpt(t, st, side, null, { selected: S.pick,
-        onclick: () => { S.pick = side; S.error = ''; render(); },
-        attrs: { role: 'radio', 'aria-checked': String(S.pick === side) } });
-      const rg = h('div', { class: 'votebox' }, h('span', { class: 'small muted', style: 'font-weight:600', text: 'Pick your side' }),
-        h('div', { class: 'opts', role: 'radiogroup', 'aria-label': 'Your vote' }, pickBtn('a'), pickBtn('b')));
-      const ta = h('textarea', { id: 'why', rows: '3', maxlength: '500', placeholder: 'Add a comment (required)' });
-      ta.value = S.draft;
-      const cnt = h('span', { class: 'small muted', text: S.draft.length + '/500' });
-      ta.addEventListener('input', () => { S.draft = ta.value; cnt.textContent = ta.value.length + '/500'; });
-      box.append(rg, h('label', { for: 'why', class: 'small muted', style: 'font-weight:600', text: 'Explain your vote' }), ta,
-        h('div', { class: 'row' }, h('span', { class: 'err', role: 'alert', text: S.error }), h('span', { style: 'display:flex;gap:8px;align-items:center' }, cnt,
-          h('button', { class: 'pill ink', disabled: S.busy || null, onclick: submitVote, text: S.busy ? 'Posting…' : 'Post' }))));
-    }
-    box.append(h('div', { class: 'votebox' }, h('span', { class: 'small muted', style: 'font-weight:600', text: st.total ? 'Results · ' + fmt(st.total) + (st.total === 1 ? ' vote' : ' votes') : 'No votes yet' }),
-      thinBar(t, st), mine ? h('div', { class: 'opts' }, sideOpt(t, st, 'a', mine, { yourPick: true }), sideOpt(t, st, 'b', mine, { yourPick: true })) : null));
-    if (mine) box.append(h('button', { class: 'enter', onclick: startSeeking }, h('span', { class: 'l', text: 'Talk to ' + (mine.side === 'a' ? t.labelB : t.labelA) + ' side' }), h('span', { class: 'r', text: 'Enter room →' })));
+  function initials(name) { return (name || '?').replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase() || '?'; }
+  async function toggleFair(c) {
+    if (!S.user) { go('signin'); return; }
+    S.myFair = S.myFair || {};
+    const on = !S.myFair[c.id];
+    S.myFair[c.id] = on; c.fair = (c.fair || 0) + (on ? 1 : -1); render();
+    const r = on ? await sb.from('fair_points').insert({ vote_id: c.id }) : await sb.from('fair_points').delete().eq('vote_id', c.id).eq('user_id', S.user.id);
+    if (r.error) { S.myFair[c.id] = !on; c.fair = (c.fair || 0) + (on ? -1 : 1); render(); }
+  }
+  function bigOpt(t, st, side, mine) {
+    const label = side === 'a' ? t.labelA : t.labelB, pct = side === 'a' ? st.pa : st.pb, n = side === 'a' ? st.a : st.b;
+    const sel = mine ? mine.side === side : S.pick === side;
+    const cls = 'bigopt ' + side + (sel ? ' sel' : (mine ? ' dim' : ''));
+    const kids = [
+      h('div', { class: 'row1' }, h('span', { class: 'nm', text: label }), mine ? h('span', { class: 'pct', text: pct + '%' }) : null),
+      h('div', { class: 'row2' }, h('span', { text: mine ? fmt(n) + (n === 1 ? ' vote' : ' votes') : (sel ? 'Selected' : 'Tap to pick') }),
+        sel ? h('span', { class: 'yp' }, mine ? 'Your pick ' : '', svg(12, ICON.check)) : null)
+    ];
+    if (mine) return h('div', { class: cls, role: 'img', 'aria-label': label + ' ' + pct + ' percent, ' + n + ' votes' + (sel ? ', your pick' : '') }, ...kids);
+    return h('button', { class: cls, role: 'radio', 'aria-checked': String(sel), onclick: () => { S.pick = side; S.error = ''; render(); } }, ...kids);
+  }
 
+  function renderTopic() {
+    const t = curTopic(); if (!t) return renderNotFound();
+    const st = stats(t.id), mine = myVote(t.id);
+    const otherLabel = mine ? (mine.side === 'a' ? t.labelB : t.labelA) : '';
+
+    const crumbs = h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' },
+      h('button', { class: 'crumb', onclick: () => go('home'), text: 'Topics' }), h('span', { 'aria-hidden': 'true', text: '/' }),
+      h('button', { class: 'crumb ch', onclick: () => { S.chan = t.community; go('home'); }, text: t.community || 't/general' }), h('span', { 'aria-hidden': 'true', text: '/' }),
+      h('span', { class: 'cur', text: t.title }));
+
+    const left = h('article', { class: 'card tcard' },
+      h('div', { class: 'thead' },
+        h('div', { class: 'tmeta' }, h('span', { class: 'chchip', text: t.community || 't/general' }), h('span', { text: '•  ' + ago(t.createdAt) + ' ago' }), h('span', { text: '•  ' + fmt(st.total) + (st.total === 1 ? ' vote' : ' votes') })),
+        h('button', { class: 'pill sm', onclick: () => shareTopic(t) }, svg(14, '<path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'), 'Share')),
+      S.shareMsg ? h('span', { class: 'small muted', role: 'status', style: 'word-break:break-all', text: S.shareMsg }) : null,
+      h('h1', { class: 'ttitle', text: t.title }),
+      h('div', { class: 'hint' }, h('span', { style: 'font-weight:600;color:var(--text)', text: mine ? 'Live split · ' + fmt(st.total) + (st.total === 1 ? ' vote' : ' votes') : 'Pick your side' }),
+        h('span', { text: mine ? 'Votes are final' : (st.total ? fmt(st.total) + ' voted so far' : 'Be the first to vote') })),
+      mine || st.total ? thinBar(t, st) : null,
+      h('div', { class: 'bigopts', role: mine ? null : 'radiogroup', 'aria-label': mine ? null : 'Your vote' }, bigOpt(t, st, 'a', mine), bigOpt(t, st, 'b', mine)));
+
+    if (!S.user) {
+      left.append(h('div', { class: 'notice' }, 'Sign in with your email to vote and chat. ', h('button', { class: 'pill ink', style: 'margin-top:8px', onclick: () => go('signin'), text: 'Sign in' })));
+    } else if (!mine) {
+      const ta = h('textarea', { id: 'why', rows: '3', maxlength: '500', placeholder: S.pick ? 'Make your case for ' + (S.pick === 'a' ? t.labelA : t.labelB) + '…' : 'Pick a side, then explain your vote…' });
+      ta.value = S.draft;
+      const cnt = h('span', { class: 'small muted', text: S.draft.length + ' / 500' });
+      ta.addEventListener('input', () => { S.draft = ta.value; cnt.textContent = ta.value.length + ' / 500'; });
+      left.append(h('div', { class: 'votebox' },
+        h('div', { class: 'row' }, h('label', { for: 'why', class: 'small', style: 'font-weight:600', text: 'Explain your vote' }), cnt), ta,
+        h('div', { class: 'row' }, h('span', { class: 'err', role: 'alert', text: S.error || 'You can only post once. Votes are final.' , style: S.error ? '' : 'color:var(--muted)' }),
+          h('button', { class: 'pill ink', disabled: S.busy || null, onclick: submitVote, text: S.busy ? 'Posting…' : 'Post vote' }))));
+    }
+    if (mine) left.append(h('hr', { class: 'sep' }),
+      h('button', { class: 'enter', onclick: startSeeking }, h('span', { class: 'l', text: 'Talk to ' + otherLabel + ' side' }), h('span', { class: 'r', text: 'Enter room →' })),
+      h('p', { class: 'caption' }, 'Matched 1-on-1 with someone who voted ', h('b', { text: otherLabel })));
+
+    const how = h('aside', { class: 'card howcard' },
+      h('span', { class: 'howicon', 'aria-hidden': 'true' }, svg(16, ICON.chat)),
+      h('div', {}, h('b', { text: 'How Speak Onion works' }),
+        h('p', {}, 'Everyone\'s takes on the right show both sides. Want a real conversation? Vote, then tap ', h('b', { text: 'Enter room' }), ' to be matched 1-on-1 with someone on the opposite side.')));
+
+    // ---- takes ----
     const ca = st.list.filter((c) => c.side === 'a'), cb = st.list.filter((c) => c.side === 'b');
-    const shown = (S.tab === 'a' ? ca : cb).sort((x, y) => y.at - x.at);
-    const sec = h('section', { class: 'card' },
-      h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Comments by side' },
-        h('button', { class: 'tab', role: 'tab', 'aria-selected': String(S.tab === 'a'), onclick: () => { S.tab = 'a'; render(); }, text: t.labelA + ' · ' + ca.length }),
-        h('button', { class: 'tab', role: 'tab', 'aria-selected': String(S.tab === 'b'), onclick: () => { S.tab = 'b'; render(); }, text: t.labelB + ' · ' + cb.length })));
-    if (!shown.length) sec.append(h('div', { class: 'pad muted small', text: 'No comments on this side yet.' }));
+    const filt = S.tab === 'a' || S.tab === 'b' ? S.tab : 'all';
+    let shown = filt === 'a' ? ca : filt === 'b' ? cb : st.list.slice();
+    shown = shown.slice().sort(S.takeSort === 'new' ? (x, y) => y.at - x.at : (x, y) => ((y.fair || 0) - (x.fair || 0)) || (y.at - x.at));
+    const chip = (key, text, cls) => h('button', { class: 'tchip ' + cls, role: 'tab', 'aria-selected': String(filt === key), onclick: () => { S.tab = key; render(); }, text });
+    const right = h('section', { class: 'card takes' },
+      h('div', { class: 'takeshead' },
+        h('div', { class: 'seg', role: 'tablist', 'aria-label': 'Filter takes' },
+          chip('all', 'All takes · ' + st.list.length, 'all'), chip('a', '● ' + t.labelA + ' · ' + ca.length, 'a'), chip('b', '● ' + t.labelB + ' · ' + cb.length, 'b')),
+        h('div', { class: 'seg', role: 'tablist', 'aria-label': 'Sort takes' },
+          h('button', { class: 'tsort', role: 'tab', 'aria-selected': String(S.takeSort !== 'new'), onclick: () => { S.takeSort = 'top'; render(); }, text: 'Top' }),
+          h('button', { class: 'tsort', role: 'tab', 'aria-selected': String(S.takeSort === 'new'), onclick: () => { S.takeSort = 'new'; render(); }, text: 'Newest' }))));
+    if (!shown.length) right.append(h('div', { class: 'muted', style: 'padding:24px 4px', text: 'No takes here yet.' }));
     for (const c of shown) {
       const isMine = mine && mine.id === c.id;
-      sec.append(h('div', { class: 'comment' },
-        h('div', { class: 'small muted' }, h('b', { style: 'color:var(--text)', text: isMine ? (S.nickname ? S.nickname + ' (you)' : 'you') : (c.masked || 'Anonymous') }), ' ', h('span', { class: 'tag ' + c.side, style: 'padding:2px 8px', text: c.side === 'a' ? t.labelA : t.labelB }), ' · ' + ago(c.at)),
-        h('div', { text: c.comment }),
-        h('div', { class: 'acts' },
-          !isMine && S.user ? h('button', { class: 'link', disabled: S.reported[c.id] || null, onclick: () => report(c.id), text: S.reported[c.id] ? 'Reported' : 'Report' }) : null,
-          S.isAdmin ? h('button', { class: 'link', style: 'color:var(--err)', onclick: () => hideComment(c.id), text: 'Hide (admin)' }) : null)));
+      const name = c.masked || 'Anonymous';
+      const faired = S.myFair && S.myFair[c.id];
+      right.append(h('div', { class: 'take' },
+        h('div', { class: 'takehead' },
+          h('span', { class: 'av ' + c.side, 'aria-hidden': 'true', text: initials(name) }),
+          h('b', { text: name + (isMine ? ' (you)' : '') }),
+          h('span', { class: 'tag ' + c.side, style: 'padding:2px 8px', text: c.side === 'a' ? t.labelA : t.labelB }),
+          h('span', { class: 'muted small', text: '· ' + ago(c.at) }),
+          h('span', { class: 'takeacts' },
+            !isMine && S.user ? h('button', { class: 'link', disabled: S.reported[c.id] || null, onclick: () => report(c.id), text: S.reported[c.id] ? 'Reported' : 'Report' }) : null,
+            S.isAdmin ? h('button', { class: 'link', style: 'color:var(--err)', onclick: () => hideComment(c.id) }, svg(13, '<path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10 10 0 0 1 12 4c5 0 9 4.5 10 8a12 12 0 0 1-2.9 4.3M6.2 6.2A12 12 0 0 0 2 12c1 3.5 5 8 10 8 1.6 0 3.1-.4 4.4-1.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'), ' Hide') : null)),
+        h('p', { class: 'taketext', text: c.comment }),
+        h('div', { class: 'takefoot' },
+          isMine ? h('span', { class: 'fair on', style: 'cursor:default' }, '▲ Fair point · ' + (c.fair || 0))
+            : h('button', { class: 'fair' + (faired ? ' on' : ''), 'aria-pressed': String(!!faired), onclick: () => toggleFair(c) }, (faired ? '▲' : '△') + ' Fair point · ' + (c.fair || 0)),
+          mine && c.side !== mine.side ? h('button', { class: 'link debate', onclick: startSeeking, text: 'Debate ' + (c.side === 'a' ? t.labelA : t.labelB) + ' side 1-on-1 →' }) : null)));
     }
-    return h('main', {}, h('div', { class: 'topicLayout' }, box, sec));
+    return h('main', {}, crumbs, h('div', { class: 'topicLayout' }, h('div', { class: 'tleft' }, left, how), right), siteFooter());
   }
 
   function renderNewTopic() {
@@ -709,7 +826,7 @@ h1,.ctitle,.topic .title{font-weight:700}
         : /duplicate/i.test(error.message) ? 'You already voted on this topic.' : error.message;
       return render();
     }
-    S.tab = S.pick; S.draft = ''; S.pick = null;
+    S.tab = 'all'; S.draft = ''; S.pick = null;
     if (live) live.send({ type: 'broadcast', event: 'vote', payload: {} }).catch(() => {});
     await loadAll(); render();
   }

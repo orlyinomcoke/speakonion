@@ -94,3 +94,6 @@ Run `migration-004-chat.sql` once in the SQL Editor, then in Supabase go to
 
 ## Migration 008 – live counts
 Run `migration-008-live.sql` once. It lets the home page show "N online" and refresh vote counts instantly when anyone votes.
+
+## Migration 009 – Fair points
+Run `migration-009-fair-points.sql` once. It saves "Fair point" upvotes on comments and powers the "Top" sort on topic pages.
