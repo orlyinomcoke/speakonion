@@ -11,7 +11,7 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 # Don't serve repo/dev files publicly
 RewriteRule ^\.git(/|$) - [F,L]
 RewriteRule ^(schema\.sql|migration-[^/]*\.sql|README\.md|server\.js|build\.js|package\.json|package-lock\.json|\.gitignore)$ - [F,L]
-RewriteRule ^(email-templates|dist|node_modules)(/|$) - [F,L]
+RewriteRule ^(email-templates|dist|node_modules|tests|\.github)(/|$) - [F,L]
 
 # Shareable topic URLs: send any path that isn't a real file to the app
 RewriteCond %{REQUEST_FILENAME} !-f
