@@ -512,7 +512,8 @@ a.inlink{color:var(--a)}
     render(); setTimeout(() => { S.shareMsg = ''; if (S.screen === 'topic') render(); }, 2500);
   }
 
-  function needsConsent() { return !!(S.user && S.profile && S.profile.id && !S.profile.terms_accepted_at); }
+  // 'terms_accepted_at' only exists after migration 010; before that, skip the gate.
+  function needsConsent() { return !!(S.user && S.profile && S.profile.id && ('terms_accepted_at' in S.profile) && !S.profile.terms_accepted_at); }
   function bannedInfo() {
     const p = S.profile; if (!p || !p.banned_until) return null;
     const until = p.banned_until === 'infinity' ? Infinity : Date.parse(p.banned_until);
@@ -1001,7 +1002,11 @@ a.inlink{color:var(--a)}
       if (!S.chat.joined || !S.chat.partnerHere) { err.textContent = 'Waiting for them to connect…'; return; }
       err.textContent = '';
       const c0 = S.chat; inp.disabled = true;
-      const { error } = await sb.rpc('send_chat', { p_match: c0.id, p_text: text });
+      let { error } = await sb.rpc('send_chat', { p_match: c0.id, p_text: text });
+      if (error && (error.code === 'PGRST202' || /could not find the function/i.test(error.message || ''))) {   // before migration 010
+        const r = await c0.ch.send({ type: 'broadcast', event: 'msg', payload: { text, side: c0.mySide } });
+        error = r === 'ok' ? null : { message: 'Message not sent. Try again.' };
+      }
       inp.disabled = !!c0.ended;
       if (error) { err.textContent = (error.message || 'Message not sent.').replace(/^.*?:\s*/, (m) => /^(ERROR|P0001)/i.test(m) ? '' : m); if (/ended/i.test(error.message)) { c0.ended = true; renderMsgs(); } return; }
       c0.msgs.push({ me: true, text }); inp.value = ''; renderMsgs(); inp.focus();
