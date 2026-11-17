@@ -307,6 +307,24 @@ body.theme-dark .take{background:var(--soft)}
 .gbtn{min-height:50px;font-size:15px;background:#fff;color:#1F1F1F;border:1px solid #DADCE0}
 .ordiv{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
 .ordiv::before,.ordiv::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.legal{max-width:760px;width:100%;margin:24px auto 0;padding:32px 36px;border:1px solid var(--line)}
+.legal h1{font-size:30px;margin:0}
+.legal h2{font:700 18px var(--display);letter-spacing:-.01em;margin:22px 0 6px}
+.legal p{margin:0 0 10px;line-height:1.65}
+.inlink{border:0;background:none;padding:0;color:var(--a);font:inherit;text-decoration:underline;cursor:pointer;min-height:0}
+a.inlink{color:var(--a)}
+.footlinks{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}
+.footlinks .inlink{min-height:32px;display:inline-flex;align-items:center}
+.checkrow{display:flex;gap:10px;align-items:flex-start;line-height:1.5}
+.checkrow input{width:20px;height:20px;margin-top:2px;accent-color:#6D28D9;flex:none}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.legal + .sitefoot{margin-top:24px}
+.banbar{max-width:1240px;margin:12px auto 0;padding:12px 16px;border-radius:14px;background:#FEE2E2;color:#7F1D1D;font-size:14px}
+.reportbox{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card);text-align:left;max-width:520px;width:100%}
+.reasons{display:flex;flex-wrap:wrap;gap:6px}
+.chat .head .pill.sm{min-height:36px}
+@media (max-width:760px){ .legal{padding:22px 20px} .chat .head{flex-wrap:wrap} }
 </style>
 </head>
 <body>
@@ -453,6 +471,7 @@ body.theme-dark .take{background:var(--soft)}
     if (S.screen === 'admin') return '/admin';
     if (S.screen === 'newTopic') return '/admin/new-topic';
     if (S.screen === 'signin') return '/signin';
+    if (['terms', 'privacy', 'account'].includes(S.screen)) return '/' + S.screen;
     return '/';
   }
   let routing = false;
@@ -463,7 +482,7 @@ body.theme-dark .take{background:var(--soft)}
       try { history[replace ? 'replaceState' : 'pushState']({}, '', p + (S.screen === 'home' ? '' : '')); } catch (e) { }
     }
     const t = curTopic();
-    document.title = ['topic', 'matching', 'chat', 'rate'].includes(S.screen) && t ? t.title + ' · Speak Onion' : 'Speak Onion';
+    document.title = ['topic', 'matching', 'chat', 'rate'].includes(S.screen) && t ? t.title + ' · Speak Onion' : S.screen === 'terms' ? 'Terms of Use · Speak Onion' : S.screen === 'privacy' ? 'Privacy Policy · Speak Onion' : 'Speak Onion';
   }
   function routeFromUrl() {
     const p = decodeURIComponent(location.pathname).replace(/\/+$/, '') || '/';
@@ -472,6 +491,7 @@ body.theme-dark .take{background:var(--soft)}
     else if (p === '/signin') go(S.user ? 'home' : 'signin');
     else if (p === '/admin') go('admin', { adminTab: S.adminTab || 'topics' });
     else if (p === '/admin/new-topic') go('newTopic');
+    else if (p === '/terms' || p === '/privacy' || p === '/account') go(p.slice(1));
     else {
       const id = S.idBySlug && S.idBySlug[p.slice(1)];
       if (id) { const mine = myVote(id); go('topic', { topicId: id, pick: null, draft: '', tab: 'all' }); }
@@ -492,10 +512,20 @@ body.theme-dark .take{background:var(--soft)}
     render(); setTimeout(() => { S.shareMsg = ''; if (S.screen === 'topic') render(); }, 2500);
   }
 
+  function needsConsent() { return !!(S.user && S.profile && S.profile.id && !S.profile.terms_accepted_at); }
+  function bannedInfo() {
+    const p = S.profile; if (!p || !p.banned_until) return null;
+    const until = p.banned_until === 'infinity' ? Infinity : Date.parse(p.banned_until);
+    if (until <= Date.now()) return null;
+    return { forever: until === Infinity, until, reason: p.ban_reason };
+  }
   function go(screen, extra) {
     if (S.screen === 'chat' && screen !== 'chat') leaveChat();
     if (S.screen === 'matching' && screen !== 'matching' && screen !== 'chat') stopSeeking();
+    if (screen === 'rate') { S.rated = false; S.rateReport = false; }
+    if (screen !== 'home') S.deleted = false;
     if (screen === 'topic' && (S.screen !== 'topic' || (extra && extra.topicId && extra.topicId !== S.topicId))) S.orderKey = null;
+    if (needsConsent() && !['consent', 'terms', 'privacy', 'signin'].includes(screen)) { S.afterConsent = screen === 'consent' ? 'home' : screen; extra = Object.assign({}, extra); screen = 'consent'; }
     Object.assign(S, { screen, error: '' }, extra || {});
     render(); window.scrollTo(0, 0);
     syncUrl();
@@ -523,10 +553,11 @@ body.theme-dark .take{background:var(--soft)}
       const pq = await sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle();
       S.isAdmin = !!(pq.data && pq.data.is_admin);
       S.nickname = (pq.data && pq.data.nickname) || '';
-    } else { S.mine = {}; S.reported = {}; S.isAdmin = false; }
+      S.profile = pq.data || {};
+    } else { S.mine = {}; S.reported = {}; S.isAdmin = false; S.profile = null; }
     const first = !S.loaded;
     S.loaded = true;
-    if (first) { routeFromUrl(); return; }
+    if (first || (needsConsent() && S.screen !== 'consent' && !['terms', 'privacy'].includes(S.screen))) { if (first) routeFromUrl(); else go(S.screen); return; }
     const typing = document.activeElement && (document.activeElement.id === 'why' || document.activeElement.tagName === 'INPUT');
     if (S.screen !== 'chat' && S.screen !== 'matching' && !typing) render();
   }
@@ -539,7 +570,7 @@ body.theme-dark .take{background:var(--soft)}
     const hr = $('headRight'), hr2 = $('headRight2'); hr.replaceChildren(); hr2.replaceChildren();
     if (sb && S.user && S.nickname) {
       const initials = (S.nickname.match(/[A-Z]/g) || ['?']).slice(0, 2).join('');
-      hr.append(h('div', { class: 'whopill', title: 'Your permanent anonymous name' }, h('span', { class: 'avatar', 'aria-hidden': 'true', text: initials }), h('span', { class: 'as muted', text: 'as' }), h('b', { text: S.nickname })));
+      hr.append(h('button', { class: 'whopill', title: 'Your account', 'aria-label': 'Your account: ' + S.nickname, onclick: () => go('account') }, h('span', { class: 'avatar', 'aria-hidden': 'true', text: initials }), h('span', { class: 'as muted', text: 'as' }), h('b', { text: S.nickname })));
     }
     if (sb && S.screen !== 'chat') {
       if (S.isAdmin) hr2.append(h('button', { class: 'pill dotpill', onclick: () => go('admin', { adminTab: S.adminTab || 'topics' }), text: 'Admin' }));
@@ -547,7 +578,9 @@ body.theme-dark .take{background:var(--soft)}
         ? h('button', { class: 'textbtn', 'aria-label': 'Sign out', onclick: async () => { await sb.auth.signOut(); } }, h('span', { class: 'lbl', text: 'Sign out' }), svg(18, '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'))
         : h('button', { class: 'pill ink', onclick: () => go('signin'), text: 'Sign in' }));
     }
-    view.replaceChildren(({ home: renderHome, topic: renderTopic, matching: renderMatching, chat: renderChat, rate: renderRate, newTopic: renderNewTopic, signin: renderSignin, admin: renderAdmin, notFound: renderNotFound })[S.screen]());
+    const ban = bannedInfo();
+    const banBar = ban ? h('div', { class: 'banbar', role: 'status' }, h('b', { text: 'Your account is suspended' + (ban.forever ? '.' : ' until ' + new Date(ban.until).toLocaleString() + '.') }), ' You can read, but you can\'t vote, like or chat.' + (ban.reason ? ' Reason: ' + ban.reason : '') + ' Questions: ' + CONTACT) : null;
+    view.replaceChildren(...(banBar ? [banBar] : []), (({ home: renderHome, topic: renderTopic, matching: renderMatching, chat: renderChat, rate: renderRate, newTopic: renderNewTopic, signin: renderSignin, admin: renderAdmin, notFound: renderNotFound, terms: renderLegal, privacy: renderLegal, account: renderAccount, consent: renderConsent })[S.screen]()));
   }
 
   function renderNotFound() {
@@ -580,7 +613,8 @@ body.theme-dark .take{background:var(--soft)}
     return h('main', {}, h('form', { class: 'card pad', style: 'max-width:440px;width:100%;margin:24px auto 0', onsubmit: submit },
       h('h1', { text: 'Sign in' }), ...google,
       h('span', { class: 'muted', text: 'No password needed. We email you a link. Your email is never shown to anyone.' }),
-      h('label', { for: 'em', class: 'small muted', style: 'font-weight:600', text: 'Email' }), email, btn, msg));
+      h('label', { for: 'em', class: 'small muted', style: 'font-weight:600', text: 'Email' }), email, btn, msg,
+      h('p', { class: 'small muted', style: 'margin:0' }, 'For adults 18+. By continuing you agree to our ', h('button', { class: 'inlink', type: 'button', onclick: () => go('terms'), text: 'Terms' }), ' and ', h('button', { class: 'inlink', type: 'button', onclick: () => go('privacy'), text: 'Privacy Policy' }), '.')));
   }
 
   const ICON = {
@@ -651,7 +685,8 @@ body.theme-dark .take{background:var(--soft)}
   }
 
   function siteFooter() {
-    return h('footer', { class: 'sitefoot' }, h('span', {}, h('b', { text: 'Speak Onion' }), ' • Anonymous cross-aisle dialogue'),
+    return h('footer', { class: 'sitefoot' }, h('span', {}, h('b', { text: 'Speak Onion' }), ' • Anonymous cross-aisle dialogue • 18+'),
+      h('nav', { class: 'footlinks', 'aria-label': 'Legal' }, h('button', { class: 'inlink', onclick: () => go('terms'), text: 'Terms' }), h('button', { class: 'inlink', onclick: () => go('privacy'), text: 'Privacy' }), S.user ? h('button', { class: 'inlink', onclick: () => go('account'), text: 'Account' }) : null, h('a', { class: 'inlink', href: 'mailto:' + CONTACT, text: 'Contact' })),
       S.isAdmin ? h('label', { class: 'toggle' }, h('input', { type: 'checkbox', role: 'switch', checked: S.simPurge || null, onchange: (e) => { S.simPurge = e.target.checked; render(); } }),
         h('span', {}, h('b', { text: 'Simulate Purge Hour' }), h('span', { class: 'muted', text: ' (admin test switch, this browser only)' }))) : null);
   }
@@ -661,6 +696,7 @@ body.theme-dark .take{background:var(--soft)}
     const visible = S.topics.filter((t) => !t.hidden);
     const voices = new Set(S.pv.map((v) => v.masked)).size;
     const chans = [...new Set(visible.map((t) => t.community || 't/general'))].sort();
+    if (S.deleted) { main.append(h('div', { class: 'card pad', role: 'status', style: 'margin-top:18px', text: 'Your account and data have been deleted. Thanks for being part of Speak Onion.' })); }
     main.append(h('div', { style: 'margin-top:22px' }, h('span', { class: 'livepill', 'aria-live': 'polite' }, h('span', { class: 'livedot', 'aria-hidden': 'true' }),
       h('span', {}, S.online ? h('b', { text: fmt(S.online) + ' online' }) : null, S.online ? ' · ' : '',
         h('b', { text: fmt(voices) + (voices === 1 ? ' voice' : ' voices') }), ' taking sides across ',
@@ -690,6 +726,10 @@ body.theme-dark .take{background:var(--soft)}
     return main;
   }
 
+  async function blockAuthor(c) {
+    const { error } = await sb.rpc('block_comment_author', { p_vote: c.id });
+    if (!error) { S.toast = 'Blocked ' + (c.masked || 'that user') + '. You won\'t see their takes or be matched with them.'; await loadAll(); render(); setTimeout(() => { S.toast = ''; if (S.screen === 'topic') render(); }, 4000); }
+  }
   function initials(name) { return (name || '?').replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase() || '?'; }
   async function toggleFair(c) {
     if (!S.user) { go('signin'); return; }
@@ -755,6 +795,7 @@ body.theme-dark .take{background:var(--soft)}
         h('p', {}, 'Everyone\'s takes on the right show both sides. Want a real conversation? Vote, then tap ', h('b', { text: 'Enter room' }), ' to be matched 1-on-1 with someone on the opposite side.')));
 
     // ---- takes ----
+    st.list = st.list.filter((c) => !c.blocked);
     const ca = st.list.filter((c) => c.side === 'a'), cb = st.list.filter((c) => c.side === 'b');
     const filt = S.tab === 'a' || S.tab === 'b' ? S.tab : 'all';
     let shown = filt === 'a' ? ca : filt === 'b' ? cb : st.list.slice();
@@ -788,13 +829,14 @@ body.theme-dark .take{background:var(--soft)}
           h('span', { class: 'muted small', text: '· ' + ago(c.at) }),
           h('span', { class: 'takeacts' },
             !isMine && S.user ? h('button', { class: 'link', disabled: S.reported[c.id] || null, onclick: () => report(c.id), text: S.reported[c.id] ? 'Reported' : 'Report' }) : null,
+            !isMine && S.user ? h('button', { class: 'link', onclick: () => blockAuthor(c), text: 'Block' }) : null,
             S.isAdmin ? h('button', { class: 'link', style: 'color:var(--err)', onclick: () => hideComment(c.id) }, svg(13, '<path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10 10 0 0 1 12 4c5 0 9 4.5 10 8a12 12 0 0 1-2.9 4.3M6.2 6.2A12 12 0 0 0 2 12c1 3.5 5 8 10 8 1.6 0 3.1-.4 4.4-1.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'), ' Hide') : null)),
         h('p', { class: 'taketext', text: c.comment }),
         h('div', { class: 'takefoot' },
           isMine ? h('span', { class: 'fair', style: 'cursor:default', title: 'Likes on your comment' }, svg(14, '<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.5 8.2 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.5 3.7 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'), (c.fair || 0) + ((c.fair || 0) === 1 ? ' like' : ' likes'))
             : h('button', { class: 'fair' + (faired ? ' on' : ''), 'aria-pressed': String(!!faired), 'aria-label': (faired ? 'Unlike' : 'Like') + ', ' + (c.fair || 0) + ' likes', onclick: () => toggleFair(c) }, svg(14, '<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.5 8.2 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.5 3.7 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z" fill="' + (faired ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'), 'Like' + ((c.fair || 0) ? ' · ' + c.fair : '')))));
     }
-    return h('main', {}, crumbs, h('div', { class: 'topicLayout' }, h('div', { class: 'tleft' }, left, how), right), siteFooter());
+    return h('main', {}, crumbs, S.toast ? h('div', { class: 'card pad small', role: 'status', text: S.toast }) : null, h('div', { class: 'topicLayout' }, h('div', { class: 'tleft' }, left, how), right), siteFooter());
   }
 
   function renderNewTopic() {
@@ -890,6 +932,7 @@ body.theme-dark .take{background:var(--soft)}
     if (sb && S.user) sb.rpc('leave_queue').then(() => {}, () => {});
   }
   async function openChat(m) {
+    S.lastMatch = undefined; S.endNote = '';
     const t = curTopic(), mine = myVote(t.id);
     try { if (sb.realtime.setAuth) await sb.realtime.setAuth(); } catch (e) { }
     const ch = sb.channel('match:' + m.match_id, { config: { private: true, broadcast: { self: false }, presence: { key: S.user.id } } });
@@ -899,8 +942,8 @@ body.theme-dark .take{background:var(--soft)}
     const c = S.chat;
     const end = (text) => { if (S.chat !== c || c.ended) return; c.ended = true; c.msgs.push({ sys: true, text }); renderMsgs(); };
     ch.on('broadcast', { event: 'msg' }, ({ payload }) => {
-      if (S.chat !== c) return;
-      const text = payload && typeof payload.text === 'string' ? payload.text.slice(0, 300) : '';
+      if (S.chat !== c || !payload || payload.side === c.mySide) return; // own messages are already shown
+      const text = typeof payload.text === 'string' ? payload.text.slice(0, 300) : '';
       if (!text) return;
       const bad = check(text, true);
       c.msgs.push(bad ? { sys: true, text: 'A message was blocked: ' + bad } : { me: false, text });
@@ -924,7 +967,8 @@ body.theme-dark .take{background:var(--soft)}
   }
   function leaveChat() {
     if (!S.chat) return;
-    const c = S.chat; S.chat = null;
+    const c = S.chat; S.chat = null; S.chatPanel = null;
+    if (S.lastMatch !== null) S.lastMatch = { id: c.id, name: c.partnerName };
     if (!c.ended && c.joined) c.ch.send({ type: 'broadcast', event: 'bye', payload: {} }).catch(() => {});
     setTimeout(() => { c.ch.untrack().catch(() => {}); sb.removeChannel(c.ch); }, 300);
     sb.rpc('end_match', { p_match: c.id }).then(() => {}, () => {});
@@ -956,15 +1000,21 @@ body.theme-dark .take{background:var(--soft)}
       const bad = check(text, true); if (bad) { err.textContent = bad; return; }
       if (!S.chat.joined || !S.chat.partnerHere) { err.textContent = 'Waiting for them to connect…'; return; }
       err.textContent = '';
-      const r = await S.chat.ch.send({ type: 'broadcast', event: 'msg', payload: { text } });
-      if (r !== 'ok') { err.textContent = 'Message not sent. Try again.'; return; }
-      S.chat.msgs.push({ me: true, text }); inp.value = ''; renderMsgs();
+      const c0 = S.chat; inp.disabled = true;
+      const { error } = await sb.rpc('send_chat', { p_match: c0.id, p_text: text });
+      inp.disabled = !!c0.ended;
+      if (error) { err.textContent = (error.message || 'Message not sent.').replace(/^.*?:\s*/, (m) => /^(ERROR|P0001)/i.test(m) ? '' : m); if (/ended/i.test(error.message)) { c0.ended = true; renderMsgs(); } return; }
+      c0.msgs.push({ me: true, text }); inp.value = ''; renderMsgs(); inp.focus();
     };
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
     const node = h('section', { class: 'chat' },
       h('div', { class: 'head' },
         h('div', { style: 'flex:1' }, h('b', { style: 'font:700 18px var(--display)', text: c ? c.partnerName : 'Anonymous' }), h('div', { class: 'small muted' }, 'Picked ', h('b', { text: otherLabel }), purgeOn() ? ' · Purge Hour' : '')),
-        h('button', { class: 'pill ink', onclick: () => go('rate'), text: 'End' })),
+        h('div', { style: 'display:flex;gap:6px;align-items:center' },
+          h('button', { class: 'pill sm', onclick: () => { S.chatPanel = S.chatPanel === 'report' ? null : 'report'; render(); }, text: 'Report' }),
+          h('button', { class: 'pill sm', onclick: async () => { const id = c.id; await sb.rpc('block_match_partner', { p_match: id }); c.ended = true; S.lastMatch = null; S.endNote = 'You blocked ' + c.partnerName + '. You won\'t be matched with them again.'; go('rate'); }, text: 'Block' }),
+          h('button', { class: 'pill ink', onclick: () => go('rate'), text: 'End' }))),
+      S.chatPanel === 'report' && c ? reportForm(c.id, () => { c.ended = true; S.chatPanel = null; S.lastMatch = null; S.endNote = 'Thanks. We saved your report and blocked ' + c.partnerName + '.'; go('rate'); }) : null,
       h('div', { class: 'card ctx' },
         h('span', { class: 'small muted', style: 'font-weight:600;letter-spacing:.06em;text-transform:uppercase', text: 'The topic' }),
         h('span', { style: 'font:700 16px/1.3 var(--display)', text: t.title }),
@@ -979,11 +1029,145 @@ body.theme-dark .take{background:var(--soft)}
     return node;
   }
   function renderRate() {
-    return h('main', {}, h('div', { class: 'center' }, h('b', { class: 'big', text: 'Chat ended' }),
-      h('span', { class: 'muted', text: 'Was the other person respectful?' }),
-      h('div', { style: 'display:flex;gap:8px' }, h('button', { class: 'pill', onclick: () => go('topic'), text: 'Yes' }), h('button', { class: 'pill', onclick: () => go('topic'), text: 'No' }))));
+    const lm = S.lastMatch;
+    const box = h('div', { class: 'center' }, h('b', { class: 'big', text: 'Chat ended' }));
+    if (S.endNote) box.append(h('span', { class: 'muted', role: 'status', text: S.endNote }));
+    if (lm && !S.rated) {
+      const rate = async (yes) => { S.rated = true; await sb.rpc('rate_match', { p_match: lm.id, p_respectful: yes }); if (!yes) { S.rateReport = true; } render(); };
+      box.append(h('span', { class: 'muted', text: 'Was ' + lm.name + ' respectful?' }),
+        h('div', { style: 'display:flex;gap:8px' }, h('button', { class: 'pill', onclick: () => rate(true), text: 'Yes' }), h('button', { class: 'pill', onclick: () => rate(false), text: 'No' })));
+    } else if (lm && S.rateReport) {
+      box.append(h('span', { class: 'muted', text: 'Sorry about that. Want to report ' + lm.name + '? They\'ll also be blocked.' }),
+        reportForm(lm.id, () => { S.rateReport = false; S.lastMatch = null; S.endNote = 'Thanks. We saved your report and blocked ' + lm.name + '.'; render(); }),
+        h('button', { class: 'textbtn', onclick: () => { S.rateReport = false; go('topic'); }, text: 'No thanks' }));
+    } else if (lm) box.append(h('span', { class: 'muted', role: 'status', text: 'Thanks for the feedback.' }));
+    box.append(h('button', { class: 'pill ink', onclick: () => go('topic'), text: 'Back to the topic' }));
+    return h('main', {}, box);
   }
 
+
+  // ---------- legal pages ----------
+  const OWNER = CFG.OWNER_NAME || '[OWNER NAME]';
+  const CONTACT = CFG.CONTACT_EMAIL || '[CONTACT EMAIL]';
+  const UPDATED = '17 November 2026';
+  const LEGAL = {
+    terms: { title: 'Terms of Use', sections: [
+      ['Who we are', ['Speak Onion ("we", "us") is run by ' + OWNER + ', based in the Philippines. These Terms are an agreement between you and us. By creating an account or using Speak Onion, you agree to them. If you don\'t agree, please don\'t use the service.']],
+      ['You must be 18 or older', ['Speak Onion is for adults only. By using it you confirm you are at least 18 years old. Chats can include strong language, especially during Purge Hour. We may close accounts we believe belong to minors.']],
+      ['Your account', ['One person, one account. Keep access to your email or Google account secure, since that is how you sign in.',
+        'You get a random nickname that can\'t be changed. Other users see only your nickname, never your email.',
+        'You can delete your account at any time from the Account page.']],
+      ['How it works', ['You vote once per topic and explain your vote in one comment. Votes and comments are final and public under your nickname.',
+        'After voting you can be matched for a private, live 1-on-1 chat with someone who voted the other way. Chats are not saved in our database.',
+        'Purge Hour runs from 12:00–12:59 AM and 12:00–12:59 PM Philippine time. During Purge Hour the profanity filter is relaxed in chats only. Every other rule still applies.']],
+      ['Rules (always, including Purge Hour)', ['Do not post or send: threats or encouragement of violence or self-harm; slurs or hate based on race, ethnicity, religion, gender, sexual orientation, disability or similar traits; sexual content or sexual harassment; anything involving minors; anyone\'s personal information (yours or someone else\'s), including phone numbers, addresses, emails, links or social-media handles; spam, scams or advertising; false statements of fact that harm a real person\'s reputation; or anything else illegal under Philippine law.',
+        'Do not impersonate others, try to identify other users, use bots, create multiple accounts, or try to bypass filters, bans or blocks.',
+        'Share opinions, not accusations. You are responsible for what you post, and online libel is a crime under the Cybercrime Prevention Act (RA 10175).']],
+      ['Moderation', ['We filter words automatically and review reports. We may hide comments, end chats, and suspend or permanently ban accounts that break these Terms, with or without notice. You can block anyone, and blocked users are never matched with you again.',
+        'To report content or ask about a ban, email ' + CONTACT + '.']],
+      ['Your content', ['You keep ownership of what you write. You give us a non-exclusive, worldwide, royalty-free licence to host, display and show it on Speak Onion, and to share anonymous, combined results such as "62% picked Yes". Deleting your account deletes your votes and comments.']],
+      ['Disclaimers', ['Opinions on Speak Onion belong to the users who post them, not to us. The service is provided "as is", without guarantees that it will always be available or error-free. To the extent allowed by law, we are not liable for indirect or consequential losses, or for what other users say or do.']],
+      ['Changes and contact', ['We may update these Terms. If the changes are important we will tell you in the app, and continuing to use Speak Onion means you accept them. These Terms are governed by the laws of the Republic of the Philippines.',
+        'Questions: ' + CONTACT + '.']]
+    ] },
+    privacy: { title: 'Privacy Policy', sections: [
+      ['Summary', ['We collect as little as we can. Other users only ever see your random nickname. We never sell your data. You can delete your account and data at any time. This policy follows the Philippine Data Privacy Act of 2012 (RA 10173).']],
+      ['Who controls your data', [OWNER + ' (the "personal information controller"). Contact for privacy requests: ' + CONTACT + '.']],
+      ['What we collect', ['Account: your email address, or your Google account email and name if you use Google sign-in; when you joined and last signed in; your random nickname; whether you confirmed you are 18+.',
+        'Activity: your votes, your comments, likes you give, comments you report, people you block.',
+        'Chats: who you were matched with, on which topic, and when. The messages themselves are passed live between you and your match and are not saved in our database. Our realtime provider may keep delivery records for a short time.',
+        'Safety: chat reports (the reason you chose and an optional note) and "Was the other person respectful?" answers.',
+        'Your device: your sign-in session and light/dark mode preference are kept in your browser\'s local storage. We do not use advertising or tracking cookies.']],
+      ['Why we use it', ['To run the service (sign-in, voting, matching, chat); to keep it safe (filters, reports, bans, limits on spam); to show anonymous, combined vote results; and to respond to legal requests. Our legal bases are your consent, the contract with you (these Terms), and our legitimate interest in keeping users safe.']],
+      ['Who we share it with', ['Supabase (database, sign-in and realtime chat; servers in Singapore), Hostinger (website hosting), and Google if you choose Google sign-in. They process data only to provide their services to us. We may also disclose data when required by Philippine law or a lawful order.',
+        'Other users see your nickname, votes, comments and likes, never your email.']],
+      ['How long we keep it', ['Account data, votes and comments: until you delete your account. Chat match records, reports and ratings: up to 12 months, or longer if needed for an investigation or legal claim. Data from a deleted account is removed from our database right away; backups held by our providers expire on their own schedules.']],
+      ['Your rights', ['Under the Data Privacy Act you can ask to be informed, access your data, correct it, object, have it erased or blocked, get a copy (data portability), and claim damages. Delete your account from the Account page, or email ' + CONTACT + ' for anything else. You can also complain to the National Privacy Commission (privacy.gov.ph).']],
+      ['Security', ['We use encrypted connections (HTTPS), database access rules so users can only change their own data, and we never show emails to other users. No system is perfectly secure. If a breach affects you, we will tell you and the National Privacy Commission as the law requires.']],
+      ['Children', ['Speak Onion is for people 18 and older. We do not knowingly collect data from minors and will delete such accounts when we find them.']],
+      ['Changes', ['We will post updates here and tell you in the app about important changes.']]
+    ] }
+  };
+  function renderLegal() {
+    const doc = LEGAL[S.screen];
+    const page = h('article', { class: 'card legal' },
+      h('h1', { text: doc.title }), h('p', { class: 'muted small', text: 'Last updated ' + UPDATED }));
+    for (const [head, paras] of doc.sections) { page.append(h('h2', { text: head })); paras.forEach((p) => page.append(h('p', { text: p }))); }
+    page.append(h('p', { class: 'small muted' }, 'See also our ', h('button', { class: 'inlink', onclick: () => go(S.screen === 'terms' ? 'privacy' : 'terms'), text: S.screen === 'terms' ? 'Privacy Policy' : 'Terms of Use' }), '.'));
+    return h('main', {}, page, siteFooter());
+  }
+
+  // ---------- consent gate (18+ and terms), shown once after sign-in ----------
+  function renderConsent() {
+    const age = h('input', { type: 'checkbox', id: 'c18' }), terms = h('input', { type: 'checkbox', id: 'cterms' });
+    const msg = h('div', { class: 'err', role: 'alert' });
+    return h('main', {}, h('div', { class: 'card pad', style: 'max-width:520px;width:100%;margin:24px auto 0' },
+      h('h1', { text: 'Before you join' }),
+      h('p', { class: 'muted', style: 'margin:0', text: 'Speak Onion is for adults. Chats can get heated, and during Purge Hour (12–1 AM and 12–1 PM) the swear filter is off in chats.' }),
+      h('label', { class: 'checkrow' }, age, h('span', { text: 'I am 18 years old or older.' })),
+      h('label', { class: 'checkrow' }, terms, h('span', {}, 'I agree to the ', h('button', { class: 'inlink', type: 'button', onclick: () => go('terms'), text: 'Terms of Use' }), ' and ',
+        h('button', { class: 'inlink', type: 'button', onclick: () => go('privacy'), text: 'Privacy Policy' }), '.')),
+      msg,
+      h('div', { class: 'row' },
+        h('button', { class: 'textbtn', onclick: async () => { await sb.auth.signOut(); go('home'); }, text: 'Not now, sign out' }),
+        h('button', { class: 'pill ink', onclick: async (e) => {
+          if (!age.checked || !terms.checked) { msg.textContent = 'Please tick both boxes to continue.'; return; }
+          e.target.disabled = true;
+          const { error } = await sb.rpc('accept_terms');
+          if (error) { msg.textContent = 'Couldn\'t save: ' + error.message; e.target.disabled = false; return; }
+          S.profile = { ...(S.profile || {}), terms_accepted_at: new Date().toISOString() };
+          await loadAll(); go(S.afterConsent || 'home'); }, text: 'Continue' }))));
+  }
+
+  // ---------- account page ----------
+  async function loadBlocks() { const { data } = await sb.rpc('my_blocks'); S.myBlocks = data || []; if (S.screen === 'account') render(); }
+  function renderAccount() {
+    if (!S.user) return h('main', {}, h('div', { class: 'card pad', text: 'Sign in to see your account.' }));
+    const p = S.profile || {};
+    const page = h('div', { class: 'card pad', style: 'max-width:620px;width:100%;margin:24px auto 0' },
+      h('h1', { text: 'Your account' }),
+      h('div', { class: 'kv' }, h('span', { class: 'muted', text: 'Nickname (shown to others)' }), h('b', { text: S.nickname || '—' })),
+      h('div', { class: 'kv' }, h('span', { class: 'muted', text: 'Email (private)' }), h('b', { text: S.user.email || '—' })),
+      h('div', { class: 'kv' }, h('span', { class: 'muted', text: 'Votes' }), h('b', { text: String(Object.keys(S.mine || {}).length) })));
+    page.append(h('h2', { text: 'Blocked people' }));
+    if (!S.myBlocks) { page.append(h('p', { class: 'muted', text: 'Loading…' })); loadBlocks(); }
+    else if (!S.myBlocks.length) page.append(h('p', { class: 'muted', text: 'You haven\'t blocked anyone.' }));
+    else S.myBlocks.forEach((b) => page.append(h('div', { class: 'row', style: 'padding:8px 0;border-top:1px solid var(--line)' }, h('span', { text: b.nickname }),
+      h('button', { class: 'pill sm', onclick: async () => { await sb.from('blocks').delete().eq('blocker', S.user.id).eq('blocked', b.blocked); S.myBlocks = null; await loadAll(); render(); }, text: 'Unblock' }))));
+    const confirm = h('input', { type: 'text', id: 'delconf', placeholder: 'Type DELETE', autocomplete: 'off' });
+    const msg = h('div', { class: 'err', role: 'alert' });
+    page.append(h('h2', { text: 'Delete account', style: 'color:var(--err)' }),
+      h('p', { class: 'muted', text: 'This permanently deletes your account, nickname, votes, comments, likes, reports and blocks. It can\'t be undone.' }),
+      h('label', { for: 'delconf', class: 'small muted', text: 'Type DELETE to confirm' }), confirm, msg,
+      h('button', { class: 'pill', style: 'background:var(--err);border-color:var(--err);color:#fff;align-self:flex-start', onclick: async (e) => {
+        if (confirm.value.trim() !== 'DELETE') { msg.textContent = 'Type DELETE in capital letters to confirm.'; return; }
+        e.target.disabled = true;
+        const { error } = await sb.rpc('delete_my_account');
+        if (error) { msg.textContent = 'Couldn\'t delete: ' + error.message; e.target.disabled = false; return; }
+        try { await sb.auth.signOut(); } catch (x) { }
+        S.user = null; S.deleted = true; go('home'); }, text: 'Delete my account' }));
+    return h('main', {}, page, siteFooter());
+  }
+
+  // ---------- reporting a chat ----------
+  const REASONS = [['harassment', 'Harassment or bullying'], ['hate', 'Hate or slurs'], ['threat', 'Threats or violence'], ['sexual', 'Sexual content'],
+    ['personal_info', 'Sharing personal info'], ['spam', 'Spam or scam'], ['other', 'Something else']];
+  function reportForm(matchId, onDone) {
+    let reason = null;
+    const note = h('textarea', { rows: '2', maxlength: '300', placeholder: 'Anything else we should know? (optional)', 'aria-label': 'Extra details' });
+    const msg = h('div', { class: 'err', role: 'alert' });
+    const list = h('div', { class: 'reasons', role: 'radiogroup', 'aria-label': 'Reason' });
+    REASONS.forEach(([k, l]) => list.append(h('button', { class: 'pill sm', role: 'radio', 'aria-checked': 'false', onclick: (e) => {
+      reason = k; list.querySelectorAll('button').forEach((b) => { b.setAttribute('aria-checked', 'false'); b.classList.remove('ink'); });
+      e.currentTarget.setAttribute('aria-checked', 'true'); e.currentTarget.classList.add('ink'); }, text: l })));
+    return h('div', { class: 'reportbox' }, h('b', { text: 'What happened?' }), list, note, msg,
+      h('button', { class: 'pill', style: 'background:var(--err);border-color:var(--err);color:#fff;align-self:flex-start', onclick: async (e) => {
+        if (!reason) { msg.textContent = 'Pick a reason.'; return; }
+        e.target.disabled = true;
+        const { error } = await sb.rpc('report_match', { p_match: matchId, p_reason: reason, p_note: note.value.trim() || null });
+        if (error) { msg.textContent = 'Couldn\'t send report: ' + error.message; e.target.disabled = false; return; }
+        onDone(); }, text: 'Report and block' }));
+  }
 
   // ---------- admin ----------
   async function loadAdmin() {
@@ -991,10 +1175,21 @@ body.theme-dark .take{background:var(--soft)}
       const { data, error } = await sb.rpc('admin_list_users');
       S.adminUsers = error ? { error: error.message } : data;
     } else if (S.adminTab === 'reports') {
-      const { data, error } = await sb.rpc('admin_reports');
-      S.adminReports = error ? { error: error.message } : data;
+      const [a, b] = await Promise.all([sb.rpc('admin_reports'), sb.rpc('admin_chat_reports')]);
+      S.adminReports = a.error ? { error: a.error.message } : a.data;
+      S.adminChatReports = b.error ? { error: b.error.message } : b.data;
     }
     if (S.screen === 'admin') render();
+  }
+  function isBanned(x) { return x.banned_until && (x.banned_until === 'infinity' || Date.parse(x.banned_until) > Date.now()); }
+  function banTag(x) { return isBanned(x) ? h('span', { class: 'tag', style: 'background:#FEE2E2;color:#991B1B', text: x.banned_until === 'infinity' ? 'Banned' : 'Banned until ' + new Date(x.banned_until).toLocaleDateString() }) : null; }
+  function safetyTag(x) { const n = (+x.chat_reports || 0) + (+x.comment_reports || 0), d = +x.not_respectful || 0; return n || d ? h('span', { class: 'small', style: 'color:var(--err)', text: n + ' report' + (n === 1 ? '' : 's') + ' · ' + d + ' "not respectful"' }) : null; }
+  function banControls(x) {
+    if (isBanned(x)) return h('button', { class: 'pill sm', onclick: () => adminAct(() => sb.rpc('admin_unban', { target: x.id })), text: 'Unban' });
+    const ban = (days) => { const reason = (S.banReason || '').trim(); adminAct(() => sb.rpc('admin_ban', { target: x.id, days, reason })); };
+    return h('span', { style: 'display:flex;gap:6px;flex-wrap:wrap' },
+      h('button', { class: 'pill sm', onclick: () => ban(1), text: 'Ban 1 day' }), h('button', { class: 'pill sm', onclick: () => ban(7), text: '7 days' }),
+      h('button', { class: 'pill sm', style: 'color:var(--err)', onclick: () => ban(null), text: 'Forever' }));
   }
   async function adminAct(fn) { S.adminMsg = ''; const r = await fn(); if (r && r.error) S.adminMsg = r.error.message; await loadAll(); await loadAdmin(); render(); }
   function renderAdmin() {
@@ -1002,7 +1197,10 @@ body.theme-dark .take{background:var(--soft)}
     const tab = S.adminTab || 'topics';
     const tabs = h('div', { class: 'chips', role: 'tablist', 'aria-label': 'Admin sections' });
     [['topics', 'Topics'], ['users', 'Users'], ['reports', 'Reports']].forEach(([k, l]) => tabs.append(h('button', { class: 'chip', role: 'tab', 'aria-selected': String(tab === k), onclick: () => { S.adminTab = k; S.adminMsg = ''; render(); loadAdmin(); }, text: l })));
-    const main = h('main', {}, h('h1', { style: 'padding:0 4px', text: 'Admin' }), tabs);
+    const reason = h('input', { type: 'text', id: 'banreason', maxlength: '200', placeholder: 'Ban reason shown to the user (optional)', value: S.banReason || '', style: 'max-width:420px' });
+    reason.addEventListener('input', () => { S.banReason = reason.value; });
+    const main = h('main', {}, h('h1', { style: 'padding:0 4px', text: 'Admin' }), tabs,
+      tab !== 'topics' ? h('label', { class: 'small muted', style: 'display:flex;flex-direction:column;gap:4px;padding:0 4px' }, 'Ban reason', reason) : null);
     if (S.adminMsg) main.append(h('div', { class: 'card pad', style: 'color:var(--err)', role: 'alert', text: S.adminMsg }));
     const box = h('div', { class: 'card', style: 'overflow:hidden' });
     main.append(box);
@@ -1034,6 +1232,8 @@ body.theme-dark .take{background:var(--soft)}
             h('div', { style: 'font-weight:600;word-break:break-all', text: (x.nickname ? x.nickname + ' · ' : '') + x.email }),
             h('div', { class: 'small muted', text: 'Joined ' + new Date(x.created_at).toLocaleDateString() + ' · last sign-in ' + (x.last_sign_in_at ? ago(Date.parse(x.last_sign_in_at)) + ' ago' : 'never') + ' · ' + x.votes + ' votes' + (x.email_confirmed ? '' : ' · not verified') })),
           x.is_admin ? h('span', { class: 'tag a', text: 'Admin' }) : null,
+          banTag(x), safetyTag(x),
+          x.id !== S.user.id ? banControls(x) : null,
           x.id !== S.user.id ? h('button', { class: 'pill', onclick: () => adminAct(() => sb.rpc('admin_set_admin', { target: x.id, make_admin: !x.is_admin })), text: x.is_admin ? 'Remove admin' : 'Make admin' }) : null));
       }
     } else {
@@ -1046,6 +1246,19 @@ body.theme-dark .take{background:var(--soft)}
           h('div', { class: 'small muted', text: x.masked + (x.email ? ' (' + x.email + ')' : '') + ' on "' + x.topic_title + '" · ' + x.reports + ' report' + (x.reports == 1 ? '' : 's') + (x.hidden ? ' · HIDDEN' : '') }),
           h('div', { text: x.comment })),
         h('button', { class: 'pill', onclick: () => adminAct(() => sb.from('votes').update({ hidden: !x.hidden }).eq('id', x.vote_id)), text: x.hidden ? 'Unhide' : 'Hide' })));
+      const cr = S.adminChatReports;
+      const box2 = h('div', { class: 'card', style: 'overflow:hidden;margin-top:12px' }, h('div', { style: 'padding:14px 18px' }, h('b', { text: 'Chat reports' })));
+      main.append(box2);
+      if (!cr) box2.append(h('div', { class: 'pad muted', text: 'Loading…' }));
+      else if (cr.error) box2.append(h('div', { class: 'pad', style: 'color:var(--err)', text: cr.error }));
+      else if (!cr.length) box2.append(h('div', { class: 'pad muted', text: 'No chat reports.' }));
+      else for (const x of cr) box2.append(h('div', { style: rowStyle },
+        h('div', { style: 'flex:1 1 260px;min-width:0' },
+          h('div', { style: 'font-weight:600;word-break:break-all', text: (x.reported_nickname || '?') + ' · ' + (x.reported_email || '') }),
+          h('div', { class: 'small muted', text: (REASONS.find((r) => r[0] === x.reason) || [0, x.reason])[1] + ' · by ' + (x.reporter_nickname || 'deleted user') + ' · ' + ago(Date.parse(x.created_at)) + ' ago' + (x.topic_title ? ' · "' + x.topic_title + '"' : '') + ' · ' + x.reported_total + ' report' + (x.reported_total == 1 ? '' : 's') + ' total' }),
+          x.note ? h('div', { class: 'small', text: '"' + x.note + '"' }) : null),
+        banTag({ banned_until: x.banned_until }),
+        x.reported ? banControls({ id: x.reported, banned_until: x.banned_until }) : null));
     }
     return main;
   }

@@ -5,7 +5,8 @@ const SITE = process.env.SITE_URL || 'https://green-chamois-573370.hostingersite
 const cfg = fs.readFileSync(new URL('../config.js', import.meta.url), 'utf8');
 const URL_ = cfg.match(/SUPABASE_URL:\s*'([^']+)'/)[1], KEY = cfg.match(/SUPABASE_ANON_KEY:\s*'([^']+)'/)[1];
 const H = { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' };
-let fails = 0;
+let fails = 0, warns = 0;
+const soft = (name, ok, detail = '') => { console.log((ok ? 'PASS ' : 'WARN ') + name + (!ok && detail ? '  -> ' + detail : '')); if (!ok) warns++; };
 const check = (name, ok, detail = '') => { console.log((ok ? 'PASS ' : 'FAIL ') + name + (!ok && detail ? '  -> ' + detail : '')); if (!ok) fails++; };
 const get = (p, o) => fetch(SITE + p, { redirect: 'manual', ...o });
 const api = (p, o = {}) => fetch(URL_ + p, { ...o, headers: { ...H, ...(o.headers || {}) } });
@@ -49,5 +50,23 @@ check('Server clock available (migration 005)', r.ok && Array.isArray(clk) && 'p
 r = await api('/rest/v1/banned_words?select=word&limit=1');
 check('Word list exists and is private (migration 003)', r.ok ? (await r.json()).length === 0 : r.status !== 404, r.status);
 
-console.log(fails ? `\n${fails} check(s) FAILED` : '\nAll live checks passed');
+// --- migration 010 (safety): warn until it has been run
+r = await api('/rest/v1/public_votes?select=blocked&limit=1');
+const m010 = r.ok;
+soft('Migration 010 applied (bans, blocks, server chat)', m010, 'run migration-010-safety.sql in Supabase');
+if (m010) {
+  for (const [fn, body] of [['send_chat', { p_match: '00000000-0000-0000-0000-000000000000', p_text: 'hi' }], ['admin_ban', { target: '00000000-0000-0000-0000-000000000000', days: 1, reason: 'x' }],
+    ['delete_my_account', {}], ['report_match', { p_match: '00000000-0000-0000-0000-000000000000', p_reason: 'spam' }], ['admin_chat_reports', {}]]) {
+    r = await api('/rest/v1/rpc/' + fn, { method: 'POST', body: JSON.stringify(body) });
+    check('Visitors cannot call ' + fn, !r.ok, r.status);
+  }
+  for (const t of ['blocks', 'chat_reports', 'chat_ratings', 'chat_rate']) {
+    r = await api('/rest/v1/' + t + '?select=*&limit=1'); const d = r.ok ? await r.json() : [];
+    check('Table ' + t + ' is private', !r.ok || d.length === 0, JSON.stringify(d).slice(0, 80));
+  }
+}
+r = await get('/terms'); check('Terms page reachable', r.status === 200);
+r = await get('/privacy'); check('Privacy page reachable', r.status === 200);
+
+console.log(fails ? `\n${fails} check(s) FAILED` : `\nAll live checks passed${warns ? ` (${warns} warning${warns > 1 ? 's' : ''})` : ''}`);
 process.exit(fails ? 1 : 0);

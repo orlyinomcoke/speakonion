@@ -97,3 +97,11 @@ Run `migration-008-live.sql` once. It lets the home page show "N online" and ref
 
 ## Migration 009 – Fair points
 Run `migration-009-fair-points.sql` once. It saves "Fair point" upvotes on comments and powers the "Top" sort on topic pages.
+
+## Migration 010 – safety (consent, delete account, bans, blocks, server-side chat)
+Run `migration-010-safety.sql` once. Then fill `OWNER_NAME` and `CONTACT_EMAIL` in `config.js`.
+- Everyone confirms they're 18+ and accepts the Terms once (existing users are asked on their next visit).
+- Users can block people (from comments or chat), report chats (saved), and rate chats.
+- Admins can ban for 1 day, 7 days or forever, and see chat reports.
+- Every chat message now goes through the server (`send_chat`), which filters it, respects Purge Hour by server time, and limits floods (8 messages / 10 s).
+- Users can delete their account and all their data from /account.
