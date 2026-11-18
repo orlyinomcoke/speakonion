@@ -1,7 +1,7 @@
 // Live smoke + security checks against the deployed site and Supabase (public key only).
 // Run: node tests/live-check.mjs   (Node 18+). Used by .github/workflows/live-check.yml
 import fs from 'node:fs';
-const SITE = process.env.SITE_URL || 'https://green-chamois-573370.hostingersite.com';
+const SITE = process.env.SITE_URL || 'https://speakonion.online';
 const cfg = fs.readFileSync(new URL('../config.js', import.meta.url), 'utf8');
 const URL_ = cfg.match(/SUPABASE_URL:\s*'([^']+)'/)[1], KEY = cfg.match(/SUPABASE_ANON_KEY:\s*'([^']+)'/)[1];
 const H = { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' };
