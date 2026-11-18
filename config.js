@@ -5,5 +5,5 @@ window.SPEAK_ONION_CONFIG = {
   ,GOOGLE_SIGNIN: true // set to true after enabling Google in Supabase (Authentication → Sign In / Providers)
   ,OWNER_NAME: 'Speak Onion'      // e.g. 'Juan Dela Cruz' or your business name — shown in Terms & Privacy
   ,CONTACT_EMAIL: 'support@speakonion.online'   // e.g. 'hello@yourdomain.com' — for privacy requests, reports, appeals
-  ,GOOGLE_CLIENT_ID: '' // the Client ID from Google Cloud (public, safe to share). Makes Google show speakonion.online
+  ,GOOGLE_CLIENT_ID: '944693385339-d8u7kfbl94jm2v2i4jgf55rc3mc2kjnq.apps.googleusercontent.com' // the Client ID from Google Cloud (public, safe to share). Makes Google show speakonion.online
 };
