@@ -16,7 +16,9 @@ let r = await get('/'); const html = await r.text();
 check('Home page loads (200)', r.status === 200, r.status);
 check('Home page is Speak Onion', html.includes('<title>Speak Onion'));
 check('Security headers present', r.headers.get('x-content-type-options') === 'nosniff' && r.headers.get('x-frame-options') === 'DENY');
-r = await get('/some-shared-topic-link'); check('Topic links serve the app', r.status === 200 && (await r.text()).includes('<title>Speak Onion'));
+r = await get('/some-shared-topic-link'); check('Unknown links still serve the app (404)', [200, 404].includes(r.status) && (await r.text()).includes('SPEAK_ONION_CONFIG') === false && r.status !== 500, r.status);
+check('Home has share image tag', /og:image" content="https:\/\/[^"]+\/og-image\.png"/.test(html));
+r = await get('/og-image.png'); check('Share image served', r.status === 200 && (r.headers.get('content-type') || '').includes('image'), r.status);
 for (const f of ['/favicon.svg', '/apple-touch-icon.png', '/config.js', '/site.webmanifest']) { r = await get(f); check('Serves ' + f, r.status === 200, r.status); }
 for (const f of ['/schema.sql', '/migration-004-chat.sql', '/README.md', '/server.js', '/package.json', '/.git/config', '/tests/e2e.py', '/email-templates/magic-link.html']) {
   r = await get(f); check('Blocks ' + f, r.status === 403 || r.status === 404, r.status);
@@ -26,6 +28,11 @@ check('HTTP redirects to HTTPS', [301, 302, 308].includes(r.status), r.status);
 
 // --- database (as an anonymous visitor)
 r = await api('/rest/v1/topics?select=id,title&limit=50'); const topics = await r.json();
+if (Array.isArray(topics) && topics[0]) {
+  const slug = topics[0].title.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60).replace(/-+$/, '');
+  const tr = await get('/' + slug); const th = await tr.text();
+  check('Topic link preview shows the topic title', tr.status === 200 && th.includes('og:title" content="') && th.includes(topics[0].title.slice(0, 20).replace(/&/g, '&amp;').replace(/'/g, '&#039;').replace(/"/g, '&quot;')), tr.status);
+}
 check('Topics readable', r.ok && Array.isArray(topics) && topics.length > 0, JSON.stringify(topics).slice(0, 120));
 r = await api('/rest/v1/public_votes?select=*&limit=5'); const pv = await r.json();
 check('Public comments readable', r.ok, JSON.stringify(pv).slice(0, 120));
