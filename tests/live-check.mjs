@@ -16,7 +16,7 @@ let r = await get('/'); const html = await r.text();
 check('Home page loads (200)', r.status === 200, r.status);
 check('Home page is Speak Onion', html.includes('<title>Speak Onion'));
 check('Security headers present', r.headers.get('x-content-type-options') === 'nosniff' && r.headers.get('x-frame-options') === 'DENY');
-r = await get('/some-shared-topic-link'); check('Unknown links still serve the app (404)', [200, 404].includes(r.status) && (await r.text()).includes('SPEAK_ONION_CONFIG') === false && r.status !== 500, r.status);
+r = await get('/some-shared-topic-link'); check('Unknown links still serve the app (404)', [200, 404].includes(r.status) && (await r.text()).includes('id="view"'), r.status);
 check('Home has share image tag', /og:image" content="https:\/\/[^"]+\/og-image\.png"/.test(html));
 r = await get('/og-image.png'); check('Share image served', r.status === 200 && (r.headers.get('content-type') || '').includes('image'), r.status);
 for (const f of ['/favicon.svg', '/apple-touch-icon.png', '/config.js', '/site.webmanifest']) { r = await get(f); check('Serves ' + f, r.status === 200, r.status); }
