@@ -325,6 +325,9 @@ a.inlink{color:var(--a)}
 .reasons{display:flex;flex-wrap:wrap;gap:6px}
 .chat .head .pill.sm{min-height:36px}
 @media (max-width:760px){ .legal{padding:22px 20px} .chat .head{flex-wrap:wrap} }
+
+.gsi{display:flex;justify-content:center;min-height:44px}
+.gsi:empty{display:none}
 </style>
 </head>
 <body>
@@ -590,6 +593,37 @@ a.inlink{color:var(--a)}
       h('button', { class: 'pill ink', onclick: () => go('home'), text: 'See all topics' })));
   }
 
+  // Google's own button: the Google screen shows "speakonion.online" (not the Supabase address)
+  let gsiLoading = null;
+  function loadGsi() {
+    if (window.google && google.accounts && google.accounts.id) return Promise.resolve();
+    if (!gsiLoading) gsiLoading = new Promise((res, rej) => {
+      const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true;
+      sc.onload = res; sc.onerror = rej; document.head.append(sc); setTimeout(rej, 8000);
+    });
+    return gsiLoading;
+  }
+  async function mountGoogleButton(slot, fallback, msg) {
+    try {
+      await loadGsi();
+      const raw = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+      const hashed = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))), (b) => b.toString(16).padStart(2, '0')).join('');
+      google.accounts.id.initialize({
+        client_id: CFG.GOOGLE_CLIENT_ID, nonce: hashed, ux_mode: 'popup', use_fedcm_for_prompt: true,
+        callback: async (resp) => {
+          msg.textContent = '';
+          const { error } = await sb.auth.signInWithIdToken({ provider: 'google', token: resp.credential, nonce: raw });
+          if (error) msg.textContent = 'Google sign-in didn\'t work: ' + error.message;
+          else go(S.afterSignin || 'home');
+        }
+      });
+      if (!slot.isConnected) return;
+      google.accounts.id.renderButton(slot, { type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: Math.min(400, slot.clientWidth || 360) });
+    } catch (e) {
+      fallback.hidden = false;   // Google's script blocked or offline: use the redirect version
+    }
+  }
+
   function renderSignin() {
     const email = h('input', { type: 'email', id: 'em', autocomplete: 'email', placeholder: 'you@example.com', style: 'width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--soft)' });
     const msg = h('div', { class: 'small muted', role: 'status' });
@@ -603,14 +637,15 @@ a.inlink{color:var(--a)}
       msg.textContent = error ? 'Couldn\'t send: ' + error.message : 'Check your inbox and tap the link to sign in. It also verifies your email.';
     };
     const gmsg = h('div', { class: 'small', style: 'color:var(--err)', role: 'alert' });
-    const google = CFG.GOOGLE_SIGNIN ? [
-      h('button', { type: 'button', class: 'pill wide gbtn', onclick: async () => {
+    const gslot = h('div', { id: 'gsi', class: 'gsi' });
+    const redirectBtn = h('button', { type: 'button', class: 'pill wide gbtn', hidden: !!CFG.GOOGLE_CLIENT_ID || null, onclick: async () => {
         gmsg.textContent = '';
         const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + '/' } });
         if (error) gmsg.textContent = 'Google sign-in isn\'t available right now: ' + error.message;
-      } }, svg(18, '<path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.2-2.1 3.5-5.1 3.5-8.7z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.7V6.6h-4a12 12 0 0 0 0 10.9l4-3.1z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.3.6 4.5 1.8l3.4-3.4A12 12 0 0 0 1.4 6.6l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/>'), 'Continue with Google'),
-      gmsg,
+      } }, svg(18, '<path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.2-2.1 3.5-5.1 3.5-8.7z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.7V6.6h-4a12 12 0 0 0 0 10.9l4-3.1z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.3.6 4.5 1.8l3.4-3.4A12 12 0 0 0 1.4 6.6l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/>'), 'Continue with Google');
+    const google = CFG.GOOGLE_SIGNIN ? [gslot, redirectBtn, gmsg,
       h('div', { class: 'ordiv', 'aria-hidden': 'true' }, h('span', { text: 'or use your email' }))] : [];
+    if (CFG.GOOGLE_SIGNIN && CFG.GOOGLE_CLIENT_ID) setTimeout(() => mountGoogleButton(gslot, redirectBtn, gmsg), 0);
     return h('main', {}, h('form', { class: 'card pad', style: 'max-width:440px;width:100%;margin:24px auto 0', onsubmit: submit },
       h('h1', { text: 'Sign in' }), ...google,
       h('span', { class: 'muted', text: 'No password needed. We email you a link. Your email is never shown to anyone.' }),

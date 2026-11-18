@@ -21,6 +21,7 @@ async def new_page(browser, user=False, admin=False, hour=None, w=1320, h=900, e
     pg = await ctx.new_page()
     await pg.route('https://cdn.jsdelivr.net/**', lambda r: r.fulfill(path=MOCK, content_type='text/javascript'))
     await pg.route('https://fonts.googleapis.com/**', lambda r: r.abort())
+    await pg.route('https://accounts.google.com/**', lambda r: r.abort())
     pg.errors = []
     pg.on('pageerror', lambda e: pg.errors.append(str(e)))
     return pg
