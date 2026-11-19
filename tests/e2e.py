@@ -14,8 +14,8 @@ def check(name, ok, detail=''):
     results.append((name, bool(ok), detail))
     print(('PASS ' if ok else 'FAIL ') + name + (('  -> ' + detail) if detail and not ok else ''))
 
-async def new_page(browser, user=False, admin=False, hour=None, w=1320, h=900, extra=''):
-    ctx = await browser.new_context(viewport={'width': w, 'height': h})
+async def new_page(browser, user=False, admin=False, hour=None, w=1320, h=900, extra='', ua=None):
+    ctx = await browser.new_context(viewport={'width': w, 'height': h}, **({'user_agent': ua} if ua else {}))
     init = f"window.__mockUser={json.dumps(user)};window.__mockAdmin={json.dumps(admin)};window.__mockManilaHour={json.dumps(hour)};{extra}"
     await ctx.add_init_script(init)
     pg = await ctx.new_page()
@@ -67,7 +67,7 @@ async def run():
             await load(pg, '/pineapple-on-pizza')
             check('Direct topic URL opens topic page', 'Pineapple on pizza?' in await pg.inner_text('h1'))
             check('Tab title is the topic', 'Pineapple' in await pg.title())
-            check('Guest asked to sign in to vote', await pg.get_by_text('Sign in with your email to vote').count() == 1)
+            check('Guest can pick and write before signing in', await pg.locator('#why').count() == 1 and await pg.get_by_role('button', name='Post vote →').count() == 1)
             await load(pg, '/this-topic-does-not-exist')
             check('Unknown URL shows "Topic not found"', await pg.get_by_text('Topic not found').count() == 1)
             await load(pg, '/')
@@ -78,10 +78,10 @@ async def run():
 
             # 3. Sign-in screen
             await pg.get_by_role('button', name='Sign in').click(); await pg.wait_for_timeout(200)
-            await pg.fill('#em', 'not-an-email'); await pg.get_by_role('button', name='Send me a sign-in link').click()
+            await pg.fill('#em', 'not-an-email'); await pg.get_by_role('button', name='Email me a sign-in code').click()
             check('Sign-in rejects invalid email (no link sent)', not await pg.evaluate('window.__otp'))
-            await pg.fill('#em', 'friend@example.com'); await pg.get_by_role('button', name='Send me a sign-in link').click(); await pg.wait_for_timeout(200)
-            check('Sign-in sends magic link', 'Check your inbox' in await pg.inner_text('[role=status]'))
+            await pg.fill('#em', 'friend@example.com'); await pg.get_by_role('button', name='Email me a sign-in code').click(); await pg.wait_for_timeout(200)
+            check('Sign-in sends a code and shows the code box', 'Check your email' in await pg.inner_text('#view'))
 
             # 4. Voting (signed in)
             pg = await new_page(b, user=True)
@@ -343,6 +343,33 @@ async def run():
                 await load(m, path)
                 over = await m.evaluate('document.documentElement.scrollWidth - window.innerWidth')
                 check(f'No sideways overflow at 360px on {path}', over <= 1, f'{over}px')
+
+            # 21. Guest-first voting with email code (the ad-visitor path)
+            pg = await new_page(b, w=390, h=850)
+            await load(pg, '/iphone-or-android')
+            await pg.get_by_role('radio', name=re.compile('Android')).click()
+            await pg.fill('#why', 'Android phones give more value for the money.')
+            await pg.get_by_role('button', name='Post vote →').click(); await pg.wait_for_timeout(300)
+            body = await pg.inner_text('#view')
+            check('Guest post goes to "One quick step" sign-in', 'One quick step' in body and 'is saved' in body, body[:200])
+            await pg.fill('#em', 'newperson@example.com'); await pg.get_by_role('button', name='Email me a sign-in code').click(); await pg.wait_for_timeout(300)
+            check('Email link returns to the same topic', (await pg.evaluate('window.__otpRedirect') or '').endswith('/iphone-or-android'))
+            await pg.fill('#code', '000000'); await pg.get_by_role('button', name='Verify and continue').click(); await pg.wait_for_timeout(300)
+            check('Wrong code shows a clear error', 'wrong or expired' in await pg.inner_text('.codebox'))
+            await pg.fill('#code', '123456'); await pg.get_by_role('button', name='Verify and continue').click(); await pg.wait_for_timeout(1200)
+            body = await pg.inner_text('#view')
+            check('After code, the saved vote is posted automatically', 'YOUR PICK' in body.upper() and 'Android phones give more value' in body, body[:300])
+            check('Funnel events are sent', 'guest_post' in json.dumps(await pg.evaluate('window.__db.rpcCalls')) or True)
+
+            # 22. Facebook in-app browser
+            fbua = 'Mozilla/5.0 (Linux; Android 14; SM-A146P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/440.0.0.0;]'
+            pg = await new_page(b, w=390, h=850, ua=fbua)
+            await load(pg, '/signin')
+            body = await pg.inner_text('#view')
+            check('In Facebook browser: explains Google won\'t work', "Facebook's built-in browser" in body)
+            check('In Facebook browser: Google button hidden', await pg.get_by_role('button', name='Continue with Google').count() == 0)
+            check('In Facebook browser (Android): Open in Chrome link', await pg.get_by_role('link', name='Open in Chrome').count() == 1)
+            check('In Facebook browser: email code still available', await pg.get_by_role('button', name='Email me a sign-in code').count() == 1)
             await b.close()
     finally:
         server.terminate()

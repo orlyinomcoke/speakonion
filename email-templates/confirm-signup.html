@@ -10,6 +10,11 @@
       <h1 style="margin:0;font-size:28px;line-height:1.15;letter-spacing:-0.5px">Welcome! Confirm your email</h1>
       <p style="margin:12px 0 0;font-size:16px;line-height:1.5;color:#4A4458">Tap the button to verify your email and start voting. Your email is never shown to anyone. You'll always appear as an anonymous user.</p>
     </td></tr>
+    <tr><td style="padding:20px 32px 0">
+      <div style="font-size:13px;color:#6B6577;margin-bottom:6px">Your code</div>
+      <div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#1A1523">{{ .Token }}</div>
+      <div style="font-size:13px;color:#6B6577;margin-top:6px">Type this code on Speak Onion, or tap the button.</div>
+    </td></tr>
     <tr><td style="padding:24px 32px">
       <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#1A1523;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:16px;padding:14px 28px;border-radius:999px">Confirm &amp; start</a>
     </td></tr>

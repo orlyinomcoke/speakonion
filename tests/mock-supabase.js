@@ -133,7 +133,8 @@
   window.supabase = { createClient() { return {
     from: q, rpc, channel, removeChannel() {}, realtime: { setAuth: async () => {} },
     auth: { onAuthStateChange(cb) { authCbs.push(cb); }, getSession: async () => ({ data: { session: session() } }),
-      signInWithOtp: async ({ email }) => { window.__otp = email; return { error: null }; },
+      signInWithOtp: async ({ email, options }) => { window.__otp = email; window.__otpRedirect = options && options.emailRedirectTo; return { error: null }; },
+      verifyOtp: async ({ token }) => { if (token !== '123456') return { error: { message: 'Token has expired or is invalid' } }; window.__mockUser = true; setTimeout(() => authCbs.forEach((cb) => cb('SIGNED_IN', session())), 10); return { data: {}, error: null }; },
       signOut: async () => { window.__mockUser = false; authCbs.forEach((cb) => cb('SIGNED_OUT', null)); } }
   }; } };
 })();

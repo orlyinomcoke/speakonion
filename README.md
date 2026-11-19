@@ -105,3 +105,8 @@ Run `migration-010-safety.sql` once. Then fill `OWNER_NAME` and `CONTACT_EMAIL` 
 - Admins can ban for 1 day, 7 days or forever, and see chat reports.
 - Every chat message now goes through the server (`send_chat`), which filters it, respects Purge Hour by server time, and limits floods (8 messages / 10 s).
 - Users can delete their account and all their data from /account.
+
+## Migration 011 – funnel tracking
+Run `migration-011-funnel.sql` once. Admin → Funnel then shows how many visitors reach each step
+(visit → pick → sign-in → vote → chat), and how many came from Facebook's in-app browser.
+Also update both Supabase email templates with the files in `email-templates/` (they now include the 6-digit `{{ .Token }}` code).

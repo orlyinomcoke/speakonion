@@ -328,6 +328,10 @@ a.inlink{color:var(--a)}
 
 .gsi{display:flex;justify-content:center;min-height:44px}
 .gsi:empty{display:none}
+
+.inappnote{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:14px;border-radius:14px;background:#FEF3C7;color:#78350F;font-size:14px}
+body.theme-dark .inappnote{background:#3B2A0B;color:#FDE68A}
+.codebox{display:flex;flex-direction:column;gap:8px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--soft)}
 </style>
 </head>
 <body>
@@ -455,6 +459,33 @@ a.inlink{color:var(--a)}
       h('span', { class: 'bb', style: 'flex:' + Math.max(st.pb, 1) + ' 1 0' + (st.pb < 25 ? ';justify-content:center' : '') }, h('span', { style: 'all:unset', text: st.pb + '%' }), st.pb < 25 ? null : h('span', { style: 'all:unset;overflow:hidden;text-overflow:ellipsis', text: t.labelB })));
   }
 
+  // ---------- funnel tracking (anonymous, no personal data) ----------
+  const UA = navigator.userAgent || '';
+  const IN_APP = /FBAN|FBAV|FB_IAB|FBIOS|Instagram|Messenger|Line\/|TikTok|musical_ly|Bytedance|Twitter for/i.test(UA);
+  const IS_ANDROID = /Android/i.test(UA), IS_MOBILE = /Android|iPhone|iPad|Mobile/i.test(UA);
+  const SID = (() => { try { let x = sessionStorage.getItem('so-sid'); if (!x) { x = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('so-sid', x); } return x; } catch (e) { return 'nosession' + Math.random().toString(36).slice(2); } })();
+  const SOURCE = (() => { const q = new URLSearchParams(location.search), r = document.referrer || '';
+    if (q.get('fbclid') || /facebook|fb\.|messenger/i.test(r) || /FBAN|FBAV|FB_IAB|Messenger/i.test(UA)) return 'facebook';
+    if (/instagram/i.test(r + UA)) return 'instagram'; if (/tiktok/i.test(r + UA)) return 'tiktok'; if (/reddit/i.test(r)) return 'reddit';
+    if (/google\./i.test(r)) return 'google'; return r ? 'other' : 'direct'; })();
+  const tracked = {};
+  function track(name, topicId, once) {
+    if (!sb) return; const key = name + '|' + (topicId || '');
+    if (once !== false && tracked[key]) return; tracked[key] = true;
+    sb.from('events').insert({ sid: SID, name, topic_id: topicId || null, inapp: IN_APP, source: SOURCE, mobile: IS_MOBILE }).then(() => {}, () => {});
+  }
+
+  // A guest's unfinished vote, kept across sign-in (even if the email link opens a new tab)
+  function savePending(p) { S.pending = p; try { p ? localStorage.setItem('so-pending', JSON.stringify(p)) : localStorage.removeItem('so-pending'); } catch (e) { } }
+  try { const p = JSON.parse(localStorage.getItem('so-pending') || 'null'); if (p && Date.now() - (p.at || 0) < 864e5) S.pending = p; } catch (e) { }
+  async function resumePending() {
+    const p = S.pending; if (!p || !S.user || !S.profile || needsConsent() || bannedInfo()) return;
+    savePending(null);
+    if (S.mine[p.topicId]) { go('topic', { topicId: p.topicId, tab: 'all' }); return; }
+    go('topic', { topicId: p.topicId, pick: p.pick, draft: p.draft, tab: 'all' });
+    await submitVote();
+  }
+
   // ---------- routing (shareable URLs) ----------
   function slugify(t) {
     return String(t).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/['’]/g, '')
@@ -531,6 +562,8 @@ a.inlink{color:var(--a)}
     if (screen === 'topic' && (S.screen !== 'topic' || (extra && extra.topicId && extra.topicId !== S.topicId))) S.orderKey = null;
     if (needsConsent() && !['consent', 'terms', 'privacy', 'signin'].includes(screen)) { S.afterConsent = screen === 'consent' ? 'home' : screen; extra = Object.assign({}, extra); screen = 'consent'; }
     Object.assign(S, { screen, error: '' }, extra || {});
+    if (screen === 'topic' && S.topicId) track('open_topic', S.topicId);
+    if (screen === 'signin') track('signin_view');
     render(); window.scrollTo(0, 0);
     syncUrl();
     if (screen === 'admin') loadAdmin();
@@ -561,7 +594,9 @@ a.inlink{color:var(--a)}
     } else { S.mine = {}; S.reported = {}; S.isAdmin = false; S.profile = null; }
     const first = !S.loaded;
     S.loaded = true;
-    if (first || (needsConsent() && S.screen !== 'consent' && !['terms', 'privacy'].includes(S.screen))) { if (first) routeFromUrl(); else go(S.screen); return; }
+    if (first) track('visit');
+    if (first || (needsConsent() && S.screen !== 'consent' && !['terms', 'privacy'].includes(S.screen))) { if (first) routeFromUrl(); else go(S.screen); if (first && S.pending && S.user && S.profile && !needsConsent()) resumePending(); return; }
+    if (S.pending && S.user && S.profile && !needsConsent()) { resumePending(); return; }
     const typing = document.activeElement && (document.activeElement.id === 'why' || document.activeElement.tagName === 'INPUT');
     if (S.screen !== 'chat' && S.screen !== 'matching' && !typing) render();
   }
@@ -624,34 +659,75 @@ a.inlink{color:var(--a)}
     }
   }
 
+  function openInBrowserLink() {
+    const url = location.origin + location.pathname;
+    if (IS_ANDROID) return 'intent://' + location.host + location.pathname + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(url) + ';end';
+    return url;
+  }
   function renderSignin() {
-    const email = h('input', { type: 'email', id: 'em', autocomplete: 'email', placeholder: 'you@example.com', style: 'width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--soft)' });
+    const p = S.pending, t = p && S.topics.find((x) => x.id === p.topicId);
+    const email = h('input', { type: 'email', id: 'em', autocomplete: 'email', inputmode: 'email', placeholder: 'you@example.com', value: S.signinEmail || '', style: 'width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--soft)' });
     const msg = h('div', { class: 'small muted', role: 'status' });
-    const btn = h('button', { class: 'pill ink wide', text: 'Send me a sign-in link' });
+    const btn = h('button', { class: 'pill ink wide', text: S.codeSentTo ? 'Send a new code' : 'Email me a sign-in code' });
     const submit = async (e) => {
       e.preventDefault();
       const v = email.value.trim(); if (!/^\S+@\S+\.\S+$/.test(v)) { msg.textContent = 'Enter a valid email.'; return; }
       btn.disabled = true; msg.textContent = 'Sending…';
-      const { error } = await sb.auth.signInWithOtp({ email: v, options: { emailRedirectTo: location.origin + location.pathname } });
+      const back = location.origin + (p && S.slugById && S.slugById[p.topicId] ? '/' + S.slugById[p.topicId] : '/');
+      const { error } = await sb.auth.signInWithOtp({ email: v, options: { emailRedirectTo: back } });
       btn.disabled = false;
-      msg.textContent = error ? 'Couldn\'t send: ' + error.message : 'Check your inbox and tap the link to sign in. It also verifies your email.';
+      if (error) { msg.textContent = 'Couldn\'t send: ' + error.message; return; }
+      S.signinEmail = v; S.codeSentTo = v; track('code_sent'); render();
+      setTimeout(() => { const c = $('code'); if (c) c.focus(); }, 50);
     };
+    const parts = [];
+    if (p && t) parts.push(h('div', { class: 'notice', role: 'status' }, h('b', { text: 'Almost done! ' }), 'Your vote for ', h('b', { text: p.pick === 'a' ? t.labelA : t.labelB }), ' on "' + t.title + '" is saved. Sign in once and we\'ll post it for you.'));
+    // Google sign-in doesn't work inside Facebook/Instagram/TikTok's built-in browser
     const gmsg = h('div', { class: 'small', style: 'color:var(--err)', role: 'alert' });
-    const gslot = h('div', { id: 'gsi', class: 'gsi' });
-    const redirectBtn = h('button', { type: 'button', class: 'pill wide gbtn', hidden: !!CFG.GOOGLE_CLIENT_ID || null, onclick: async () => {
-        gmsg.textContent = '';
-        const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + '/' } });
+    if (CFG.GOOGLE_SIGNIN && IN_APP) {
+      parts.push(h('div', { class: 'inappnote' },
+        h('b', { text: 'You\'re in Facebook\'s built-in browser' }),
+        h('span', { text: 'Google sign-in doesn\'t work here. Use the email code below (quickest), or open Speak Onion in your phone\'s browser.' }),
+        IS_ANDROID ? h('a', { class: 'pill sm', href: openInBrowserLink(), text: 'Open in Chrome' })
+          : h('span', { class: 'small muted', text: 'On iPhone: tap ••• (top right) → Open in external browser.' })));
+    } else if (CFG.GOOGLE_SIGNIN) {
+      const gslot = h('div', { id: 'gsi', class: 'gsi' });
+      const redirectBtn = h('button', { type: 'button', class: 'pill wide gbtn', hidden: !!CFG.GOOGLE_CLIENT_ID || null, onclick: async () => {
+        gmsg.textContent = ''; track('google_click');
+        const back = location.origin + (p && S.slugById && S.slugById[p.topicId] ? '/' + S.slugById[p.topicId] : '/');
+        const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: back } });
         if (error) gmsg.textContent = 'Google sign-in isn\'t available right now: ' + error.message;
       } }, svg(18, '<path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.2-2.1 3.5-5.1 3.5-8.7z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.7V6.6h-4a12 12 0 0 0 0 10.9l4-3.1z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.3.6 4.5 1.8l3.4-3.4A12 12 0 0 0 1.4 6.6l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/>'), 'Continue with Google');
-    const google = CFG.GOOGLE_SIGNIN ? [gslot, redirectBtn, gmsg,
-      h('div', { class: 'ordiv', 'aria-hidden': 'true' }, h('span', { text: 'or use your email' }))] : [];
-    if (CFG.GOOGLE_SIGNIN && CFG.GOOGLE_CLIENT_ID) setTimeout(() => mountGoogleButton(gslot, redirectBtn, gmsg), 0);
+      parts.push(gslot, redirectBtn, gmsg, h('div', { class: 'ordiv', 'aria-hidden': 'true' }, h('span', { text: 'or use your email' })));
+      if (CFG.GOOGLE_CLIENT_ID) setTimeout(() => mountGoogleButton(gslot, redirectBtn, gmsg), 0);
+    }
+    parts.push(h('label', { for: 'em', class: 'small muted', style: 'font-weight:600', text: 'Email' }), email, btn, msg);
+    if (S.codeSentTo) {
+      const code = h('input', { type: 'text', id: 'code', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '8', placeholder: '123456', style: 'width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--soft);font-size:22px;letter-spacing:.3em;text-align:center' });
+      const cmsg = h('div', { class: 'err', role: 'alert' });
+      const verify = async () => {
+        const tok = code.value.replace(/\D/g, '');
+        if (tok.length < 6) { cmsg.textContent = 'Enter the code from the email.'; return; }
+        vbtn.disabled = true; cmsg.textContent = '';
+        const { error } = await sb.auth.verifyOtp({ email: S.codeSentTo, token: tok, type: 'email' });
+        vbtn.disabled = false;
+        if (error) { cmsg.textContent = /expired|invalid/i.test(error.message) ? 'That code is wrong or expired. Check the latest email, or send a new code.' : error.message; return; }
+        S.codeSentTo = null;
+      };
+      code.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); verify(); } });
+      const vbtn = h('button', { type: 'button', class: 'pill ink wide', onclick: verify, text: 'Verify and continue' });
+      parts.push(h('div', { class: 'codebox' },
+        h('b', { text: 'Check your email' }),
+        h('span', { class: 'small muted', text: 'We sent a code to ' + S.codeSentTo + '. Type it here. It also has a link, but the code keeps you in this window. Check Spam/Promotions if you don\'t see it.' }),
+        h('label', { for: 'code', class: 'sr', text: 'Sign-in code' }), code, cmsg, vbtn));
+    }
     return h('main', {}, h('form', { class: 'card pad', style: 'max-width:440px;width:100%;margin:24px auto 0', onsubmit: submit },
-      h('h1', { text: 'Sign in' }), ...google,
-      h('span', { class: 'muted', text: 'No password needed. We email you a link. Your email is never shown to anyone.' }),
-      h('label', { for: 'em', class: 'small muted', style: 'font-weight:600', text: 'Email' }), email, btn, msg,
+      h('h1', { text: p ? 'One quick step' : 'Sign in' }),
+      h('span', { class: 'muted', text: 'No password needed. Your email is never shown to anyone. Others only see a random nickname.' }),
+      ...parts,
       h('p', { class: 'small muted', style: 'margin:0' }, 'For adults 18+. By continuing you agree to our ', h('button', { class: 'inlink', type: 'button', onclick: () => go('terms'), text: 'Terms' }), ' and ', h('button', { class: 'inlink', type: 'button', onclick: () => go('privacy'), text: 'Privacy Policy' }), '.')));
   }
+
 
   const ICON = {
     flame: '<path d="M12 2.5c.6 3.2 4.8 5.6 4.8 10.6A4.8 4.8 0 0 1 12 18a4.8 4.8 0 0 1-4.8-4.9c0-2.1 1-3.6 2-4.6.1 1.6.9 2.7 2 3.2-.4-3.4.6-6.7.8-9.2z" fill="#F97316"/><path d="M12 21.5a6.5 6.5 0 0 1-6.5-6.5c0-1.5.4-2.7 1-3.8" fill="none" stroke="#F97316" stroke-width="1.6" stroke-linecap="round"/>',
@@ -785,7 +861,7 @@ a.inlink{color:var(--a)}
         sel ? h('span', { class: 'yp' }, mine ? 'Your pick ' : '', svg(12, ICON.check)) : null)
     ];
     if (mine) return h('div', { class: cls, role: 'img', 'aria-label': label + ' ' + pct + ' percent, ' + n + ' votes' + (sel ? ', your pick' : '') }, ...kids);
-    return h('button', { class: cls, role: 'radio', 'aria-checked': String(sel), onclick: () => { S.pick = side; S.error = ''; render(); } }, ...kids);
+    return h('button', { class: cls, role: 'radio', 'aria-checked': String(sel), onclick: () => { S.pick = side; S.error = ''; track('pick', t.id); render(); } }, ...kids);
   }
 
   function renderTopic() {
@@ -809,9 +885,7 @@ a.inlink{color:var(--a)}
       mine || st.total ? thinBar(t, st) : null,
       h('div', { class: 'bigopts', role: mine ? null : 'radiogroup', 'aria-label': mine ? null : 'Your vote' }, bigOpt(t, st, 'a', mine), bigOpt(t, st, 'b', mine)));
 
-    if (!S.user) {
-      left.append(h('div', { class: 'notice' }, 'Sign in with your email to vote and chat. ', h('button', { class: 'pill ink', style: 'margin-top:8px', onclick: () => go('signin'), text: 'Sign in' })));
-    } else if (!mine) {
+    if (!mine) {
       const ta = h('textarea', { id: 'why', rows: '3', maxlength: '500', placeholder: S.pick ? 'Make your case for ' + (S.pick === 'a' ? t.labelA : t.labelB) + '…' : 'Pick a side, then explain your vote…' });
       ta.value = S.draft;
       const cnt = h('span', { class: 'small muted', text: S.draft.length + ' / 500' });
@@ -819,7 +893,8 @@ a.inlink{color:var(--a)}
       left.append(h('div', { class: 'votebox' },
         h('div', { class: 'row' }, h('label', { for: 'why', class: 'small', style: 'font-weight:600', text: 'Explain your vote' }), cnt), ta,
         h('div', { class: 'row' }, h('span', { class: 'err', role: 'alert', text: S.error || 'You can only post once. Votes are final.' , style: S.error ? '' : 'color:var(--muted)' }),
-          h('button', { class: 'pill ink', disabled: S.busy || null, onclick: submitVote, text: S.busy ? 'Posting…' : 'Post vote' }))));
+          h('button', { class: 'pill ink', disabled: S.busy || null, onclick: submitVote, text: S.busy ? 'Posting…' : (S.user ? 'Post vote' : 'Post vote →') }))));
+      if (!S.user) left.append(h('p', { class: 'small muted', style: 'margin:-6px 0 0', text: 'Quick one-time sign-in after you post, so each person only votes once. Your vote and comment are kept.' }));
     }
     if (mine) left.append(h('hr', { class: 'sep' }),
       h('button', { class: 'enter', onclick: startSeeking }, h('span', { class: 'l', text: 'Talk to ' + otherLabel + ' side' }), h('span', { class: 'r', text: 'Enter room →' })),
@@ -923,6 +998,12 @@ a.inlink{color:var(--a)}
     const text = S.draft.trim();
     if (text.length < 10) { S.error = 'Write at least 10 characters.'; return render(); }
     const bad = check(text, false); if (bad) { S.error = bad; return render(); }
+    if (!S.user) {   // guest: keep the vote, sign in, then post it automatically
+      savePending({ topicId: t.id, pick: S.pick, draft: text, at: Date.now() });
+      track('guest_post', t.id);
+      go('signin', { afterSignin: 'topic', signinReason: 'vote' });
+      return;
+    }
     S.busy = true; render();
     const { error } = await sb.from('votes').insert({ topic_id: t.id, side: S.pick, comment: text });
     S.busy = false;
@@ -931,6 +1012,7 @@ a.inlink{color:var(--a)}
         : /duplicate/i.test(error.message) ? 'You already voted on this topic.' : error.message;
       return render();
     }
+    track('voted', t.id);
     S.tab = 'all'; S.draft = ''; S.pick = null;
     if (live) live.send({ type: 'broadcast', event: 'vote', payload: {} }).catch(() => {});
     await loadAll(); render();
@@ -949,6 +1031,7 @@ a.inlink{color:var(--a)}
   async function startSeeking() {
     const t = curTopic();
     if (!S.user) { go('signin'); return; }
+    track('chat_start', t.id, false);
     go('matching', { matchNote: '' });
     const myTopic = t.id;
     const tick = async () => {
@@ -969,6 +1052,7 @@ a.inlink{color:var(--a)}
   }
   async function openChat(m) {
     S.lastMatch = undefined; S.endNote = '';
+    track('matched', S.topicId, false);
     const t = curTopic(), mine = myVote(t.id);
     try { if (sb.realtime.setAuth) await sb.realtime.setAuth(); } catch (e) { }
     const ch = sb.channel('match:' + m.match_id, { config: { private: true, broadcast: { self: false }, presence: { key: S.user.id } } });
@@ -1156,7 +1240,7 @@ a.inlink{color:var(--a)}
           const { error } = await sb.rpc('accept_terms');
           if (error) { msg.textContent = 'Couldn\'t save: ' + error.message; e.target.disabled = false; return; }
           S.profile = { ...(S.profile || {}), terms_accepted_at: new Date().toISOString() };
-          await loadAll(); go(S.afterConsent || 'home'); }, text: 'Continue' }))));
+          track('consent_done'); await loadAll(); if (!S.pending) go(S.afterConsent || 'home'); }, text: 'Continue' }))));
   }
 
   // ---------- account page ----------
@@ -1214,6 +1298,10 @@ a.inlink{color:var(--a)}
     if (S.adminTab === 'users') {
       const { data, error } = await sb.rpc('admin_list_users');
       S.adminUsers = error ? { error: error.message } : data;
+    } else if (S.adminTab === 'funnel') {
+      sb.rpc('admin_prune_events').then(() => {}, () => {});
+      const { data, error } = await sb.rpc('admin_funnel', { days: S.funnelDays || 7 });
+      S.adminFunnel = error ? { error: error.message } : data;
     } else if (S.adminTab === 'reports') {
       const [a, b] = await Promise.all([sb.rpc('admin_reports'), sb.rpc('admin_chat_reports')]);
       S.adminReports = a.error ? { error: a.error.message } : a.data;
@@ -1236,7 +1324,7 @@ a.inlink{color:var(--a)}
     if (!S.isAdmin) return h('main', {}, h('div', { class: 'card pad', text: 'Admins only.' }));
     const tab = S.adminTab || 'topics';
     const tabs = h('div', { class: 'chips', role: 'tablist', 'aria-label': 'Admin sections' });
-    [['topics', 'Topics'], ['users', 'Users'], ['reports', 'Reports']].forEach(([k, l]) => tabs.append(h('button', { class: 'chip', role: 'tab', 'aria-selected': String(tab === k), onclick: () => { S.adminTab = k; S.adminMsg = ''; render(); loadAdmin(); }, text: l })));
+    [['topics', 'Topics'], ['users', 'Users'], ['reports', 'Reports'], ['funnel', 'Funnel']].forEach(([k, l]) => tabs.append(h('button', { class: 'chip', role: 'tab', 'aria-selected': String(tab === k), onclick: () => { S.adminTab = k; S.adminMsg = ''; render(); loadAdmin(); }, text: l })));
     const reason = h('input', { type: 'text', id: 'banreason', maxlength: '200', placeholder: 'Ban reason shown to the user (optional)', value: S.banReason || '', style: 'max-width:420px' });
     reason.addEventListener('input', () => { S.banReason = reason.value; });
     const main = h('main', {}, h('h1', { style: 'padding:0 4px', text: 'Admin' }), tabs,
@@ -1260,6 +1348,28 @@ a.inlink{color:var(--a)}
             : h('span', { style: 'display:flex;gap:8px' },
                 h('button', { class: 'pill', onclick: () => adminAct(() => sb.from('topics').update({ hidden: !t.hidden }).eq('id', t.id)), text: t.hidden ? 'Unhide' : 'Hide' }),
                 h('button', { class: 'pill', style: 'color:var(--err)', onclick: () => { S.confirmDel = t.id; render(); }, text: 'Remove' }))));
+      }
+    } else if (tab === 'funnel') {
+      const f = S.adminFunnel;
+      const daysSel = h('div', { class: 'seg', style: 'padding:14px 18px' }, ...[1, 7, 30].map((d) => h('button', { class: 'chip', role: 'tab', 'aria-selected': String((S.funnelDays || 7) === d), onclick: () => { S.funnelDays = d; S.adminFunnel = null; render(); loadAdmin(); }, text: d === 1 ? 'Today' : 'Last ' + d + ' days' })));
+      box.append(daysSel);
+      if (!f) box.append(h('div', { class: 'pad muted', text: 'Loading…' }));
+      else if (f.error) box.append(h('div', { class: 'pad', style: 'color:var(--err)', text: f.error + ' (run migration-011-funnel.sql)' }));
+      else {
+        const by = {}; f.forEach((r) => { by[r.name] = r; });
+        const STEPS = [['visit', 'Visited the site'], ['open_topic', 'Opened a topic'], ['pick', 'Picked a side'], ['guest_post', 'Wrote a comment (not signed in)'], ['signin_view', 'Saw the sign-in page'],
+          ['code_sent', 'Requested an email code/link'], ['google_click', 'Tapped Google sign-in'], ['signed_in', 'Signed in'], ['consent_done', 'Accepted 18+ / Terms'], ['voted', 'Voted'], ['chat_start', 'Tried to chat'], ['matched', 'Got matched']];
+        const top = Math.max(1, +(by.visit && by.visit.visitors) || 1);
+        box.append(h('div', { class: 'small muted', style: 'padding:0 18px 8px', text: 'Unique visitors (per browser tab) who reached each step. "In-app" = Facebook/Instagram/TikTok built-in browser.' }));
+        for (const [k, label] of STEPS) {
+          const r = by[k] || { visitors: 0, inapp_visitors: 0, fb_visitors: 0 }, n = +r.visitors || 0;
+          box.append(h('div', { style: rowStyle },
+            h('div', { style: 'flex:1 1 220px;min-width:0' }, h('div', { style: 'font-weight:600', text: label }),
+              h('div', { class: 'small muted', text: (+r.inapp_visitors || 0) + ' in-app · ' + (+r.fb_visitors || 0) + ' from Facebook' })),
+            h('div', { style: 'flex:2 1 220px;display:flex;align-items:center;gap:10px' },
+              h('div', { style: 'flex:1;height:10px;border-radius:999px;background:var(--soft);overflow:hidden' }, h('div', { style: 'height:100%;background:#7C3AED;width:' + Math.round(n * 100 / top) + '%' })),
+              h('b', { style: 'min-width:70px;text-align:right', text: fmt(n) + ' · ' + Math.round(n * 100 / top) + '%' }))));
+        }
       }
     } else if (tab === 'users') {
       const u = S.adminUsers;
@@ -1320,7 +1430,7 @@ a.inlink{color:var(--a)}
   if (sb) {
     sb.auth.onAuthStateChange((_e, session) => {
       const was = S.user && S.user.id; S.user = session ? session.user : null;
-      if ((S.user && S.user.id) !== was) { if (S.screen === 'signin' && S.user) S.screen = 'home'; loadAll(); if (was !== undefined) restartLive(); }
+      if ((S.user && S.user.id) !== was) { if (S.user) track('signed_in'); if (S.screen === 'signin' && S.user) { S.screen = 'home'; if (S.afterSignin && !S.pending) S.screen = S.afterSignin; } loadAll(); if (was !== undefined) restartLive(); }
     });
     sb.auth.getSession().then(({ data }) => { S.user = data.session ? data.session.user : null; loadAll(); startLive(); });
     setInterval(() => { if (document.visibilityState === 'visible') loadAll(); }, 20000);
