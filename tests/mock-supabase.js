@@ -13,6 +13,7 @@
       { id: 3, user_id: 'u3', topic_id: 't2', side: 'b', comment: 'Pineapple belongs in desserts only.', hidden: false, created_at: new Date(now - 3 * H).toISOString() }],
     fair_points: [{ vote_id: 2, user_id: 'u2' }], reports: [], blocks: [], chatReports: [], ratings: [], seq: 100, rpcCalls: [], rpcArgs: {}
   };
+  (window.__extraTopics || []).forEach((t) => db.topics.push({ label_a: 'Yes', label_b: 'No', ...t }));
   const BANNED = ['gago', 'puta', 'fuck', 'shit', 'bitch', 'pota'];
   const nick = (uid) => (db.profiles.find((p) => p.id === uid) || {}).nickname || 'Anonymous';
   const me = () => (window.__mockUser ? 'me' : null);

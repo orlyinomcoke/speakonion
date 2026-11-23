@@ -513,7 +513,7 @@ body.theme-dark .inappnote{background:#3B2A0B;color:#FDE68A}
     if (routing) return;
     const p = pathFor();
     if (location.pathname !== p) {
-      try { history[replace ? 'replaceState' : 'pushState']({}, '', p + (S.screen === 'home' ? '' : '')); } catch (e) { }
+      try { const d = (history.state && history.state.so) || 0; history[replace ? 'replaceState' : 'pushState']({ so: replace ? d : d + 1 }, '', p); } catch (e) { }
     }
     const t = curTopic();
     document.title = ['topic', 'matching', 'chat', 'rate'].includes(S.screen) && t ? t.title + ' · Speak Onion' : S.screen === 'terms' ? 'Terms of Use · Speak Onion' : S.screen === 'privacy' ? 'Privacy Policy · Speak Onion' : 'Speak Onion';
@@ -534,6 +534,7 @@ body.theme-dark .inappnote{background:#3B2A0B;color:#FDE68A}
     routing = false;
     syncUrl(true);
   }
+  try { history.scrollRestoration = 'manual'; } catch (e) { }
   window.addEventListener('popstate', () => { if (S.loaded) routeFromUrl(); });
 
   async function shareTopic(t) {
@@ -561,10 +562,17 @@ body.theme-dark .inappnote{background:#3B2A0B;color:#FDE68A}
     if (screen !== 'home') S.deleted = false;
     if (screen === 'topic' && (S.screen !== 'topic' || (extra && extra.topicId && extra.topicId !== S.topicId))) S.orderKey = null;
     if (needsConsent() && !['consent', 'terms', 'privacy', 'signin'].includes(screen)) { S.afterConsent = screen === 'consent' ? 'home' : screen; extra = Object.assign({}, extra); screen = 'consent'; }
+    const from = S.screen;
+    if (from === 'home' && screen !== 'home') S.homeY = window.scrollY;
     Object.assign(S, { screen, error: '' }, extra || {});
     if (screen === 'topic' && S.topicId) track('open_topic', S.topicId);
     if (screen === 'signin') track('signin_view');
-    render(); window.scrollTo(0, 0);
+    render();
+    const back = screen === 'home' && S.homeY != null && ['topic', 'matching', 'chat', 'rate', 'notFound'].includes(from);
+    const y = back ? S.homeY : 0;
+    window.scrollTo(0, y);
+    // phones sometimes leave the top unpainted after a big scroll jump: repaint on the next frames
+    requestAnimationFrame(() => { window.scrollTo(0, y); document.body.style.transform = 'translateZ(0)'; requestAnimationFrame(() => { document.body.style.transform = ''; }); });
     syncUrl();
     if (screen === 'admin') loadAdmin();
   }
@@ -1423,7 +1431,7 @@ body.theme-dark .inappnote{background:#3B2A0B;color:#FDE68A}
 
   // ---------- wiring ----------
   $('home').addEventListener('click', () => go('home'));
-  $('back').addEventListener('click', () => (S.screen === 'notFound') ? go('home') : go(S.screen === 'newTopic' && S.isAdmin ? 'admin' : ['topic', 'newTopic', 'signin', 'admin'].includes(S.screen) ? 'home' : 'topic'));
+  $('back').addEventListener('click', () => (history.state && history.state.so > 0) ? history.back() : (S.screen === 'notFound') ? go('home') : go(S.screen === 'newTopic' && S.isAdmin ? 'admin' : ['topic', 'newTopic', 'signin', 'admin'].includes(S.screen) ? 'home' : 'topic'));
   syncServerClock(); setInterval(syncServerClock, 300000);
   setInterval(() => { const on = purgeOn(); if (on !== S._purge) { S._purge = on; if (S.screen !== 'chat') render(); else { document.body.classList.toggle('purge-chat', on); $('purgeBar').hidden = !on; } } }, 30000);
   render();
